@@ -6,6 +6,10 @@ struct HistoryRow: Identifiable {
   /// Identifier of the snapshot this row was built from.
   var id: PersistentIdentifier
   var date: Date
+  /// Archive entry with totals only, no per-deposit details.
+  var isSummaryOnly: Bool
+  /// Rates were typed by hand or obtained for another day.
+  var ratesNeedAttention: Bool
 
   var sumRUB: Double
   var sumUSD: Double

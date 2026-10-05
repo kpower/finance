@@ -14,6 +14,9 @@ enum PreviewData {
         DepositRecord(name: "Кошелёк", bank: "Тинькофф", amountRUB: 120_000, amountUSD: 500)
       ]
     }
+    context.insert(Snapshot(
+      date: day(-120), rates: Rates(usd: 88.0, eur: 95.5, date: nil, source: Rates.manualSource),
+      rub: 400_000, usd: 2_500, eur: 1_500))
     context.insert(Snapshot(date: day(-30), rates: Rates(usd: 90.5, eur: 98.2, date: nil), items: items(0.9)))
     context.insert(Snapshot(date: day(-14), rates: Rates(usd: 94.1, eur: 101.7, date: nil), items: items(1.0)))
     context.insert(Snapshot(date: day(-2), rates: Rates(usd: 92.0, eur: 104.3, date: nil), items: items(1.1)))

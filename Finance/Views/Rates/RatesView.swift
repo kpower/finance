@@ -4,7 +4,7 @@ import SwiftUI
 struct RatesView: View {
   @Environment(\.modelContext) private var context
   @Query(sort: \RateRecord.createdAt, order: .reverse) private var records: [RateRecord]
-  @AppStorage("ratesProviderID") private var providerID = RateProviders.all[0].id
+  @AppStorage(RateProviders.selectionKey) private var providerID = RateProviders.all[0].id
 
   @State private var manualUSD: Double?
   @State private var manualEUR: Double?
@@ -19,7 +19,7 @@ struct RatesView: View {
   @State private var selection = Set<RateRecord.ID>()
 
   private var provider: any RateProvider {
-    RateProviders.all.first { $0.id == providerID } ?? RateProviders.all[0]
+    RateProviders.provider(id: providerID)
   }
 
   private var manualValid: Bool {
@@ -80,7 +80,7 @@ struct RatesView: View {
         Spacer()
         Button("Применить") {
           guard let usd = manualUSD, let eur = manualEUR else { return }
-          apply(Rates(usd: usd, eur: eur, date: manualDate), source: "Вручную")
+          apply(Rates(usd: usd, eur: eur, date: manualDate), source: Rates.manualSource)
           manualUSD = nil
           manualEUR = nil
         }
@@ -233,7 +233,7 @@ struct RatesView: View {
   container.mainContext.insert(RateRecord(
     rateDate: .now, usd: 83.4839, eur: 94.3201, source: "ЦБ РФ (XML)"))
   container.mainContext.insert(RateRecord(
-    rateDate: .now.addingTimeInterval(-86400 * 3), usd: 82.1, eur: 92.7, source: "Вручную",
+    rateDate: .now.addingTimeInterval(-86400 * 3), usd: 82.1, eur: 92.7, source: Rates.manualSource,
     createdAt: .now.addingTimeInterval(-86400 * 3)))
   return RatesView().modelContainer(container).frame(width: 760, height: 900)
 }

@@ -8,6 +8,7 @@ struct HistoryView: View {
   @State private var path: [PersistentIdentifier] = []
   @State private var selection: Set<PersistentIdentifier> = []
   @State private var pendingDelete: Set<PersistentIdentifier> = []
+  @State private var isAddingArchive = false
   @SceneStorage("historyColumns") private var customization = TableColumnCustomization<HistoryRow>()
 
   private var rows: [HistoryRow] { HistoryCalculator.rows(for: snapshots).reversed() }
@@ -19,13 +20,25 @@ struct HistoryView: View {
           ContentUnavailableView(
             "История пуста",
             systemImage: "clock.arrow.circlepath",
-            description: Text("Записи появляются после нажатия кнопки «Сохранить в историю» в разделе «Вклады».")
+            description: Text("Записи появляются после нажатия кнопки «Сохранить в историю» в разделе «Вклады». Прошлые даты можно добавить архивной записью.")
           )
         } else {
-          table
+          VSplitView {
+            HistoryCharts(rows: rows)
+              .frame(minHeight: 180, idealHeight: 240)
+            table
+              .frame(minHeight: 160)
+          }
         }
       }
       .navigationTitle("История")
+      .toolbar {
+        Button("Добавить архивную запись", systemImage: "archivebox", action: { isAddingArchive = true })
+          .help("Добавить прошлую дату: только суммы по валютам, без распределения по вкладам")
+      }
+      .sheet(isPresented: $isAddingArchive) {
+        ArchiveEntrySheet()
+      }
       .navigationDestination(for: PersistentIdentifier.self) { id in
         if let snapshot = snapshots.first(where: { $0.persistentModelID == id }) {
           SnapshotDetailView(snapshot: snapshot)
@@ -48,8 +61,17 @@ struct HistoryView: View {
   private var table: some View {
     Table(of: HistoryRow.self, selection: $selection, columnCustomization: $customization) {
       Group {
-        TableColumn("Дата") { (row: HistoryRow) in Text(Fmt.date(row.date)).monospacedDigit() }
-          .width(min: 80, ideal: 90)
+        TableColumn("Дата") { (row: HistoryRow) in
+          HStack(spacing: 4) {
+            Text(Fmt.date(row.date)).monospacedDigit()
+            if row.isSummaryOnly {
+              Image(systemName: "archivebox")
+                .foregroundStyle(.secondary)
+                .help("Архивная запись: только суммы, без распределения по вкладам")
+            }
+          }
+        }
+          .width(min: 100, ideal: 110)
           .customizationID("date")
         TableColumn("₽") { (r: HistoryRow) in Cell.money(r.sumRUB) }
           .width(min: 100, ideal: 120)
@@ -59,7 +81,7 @@ struct HistoryView: View {
           .width(min: 90, ideal: 110)
           .alignment(.trailing)
           .customizationID("usd")
-        TableColumn("Курс $") { (r: HistoryRow) in Cell.rate(r.usdRate) }
+        TableColumn("Курс $") { (r: HistoryRow) in Cell.rate(r.usdRate, needsAttention: r.ratesNeedAttention) }
           .width(min: 70, ideal: 80)
           .alignment(.trailing)
           .customizationID("usdRate")
@@ -71,7 +93,7 @@ struct HistoryView: View {
           .width(min: 90, ideal: 110)
           .alignment(.trailing)
           .customizationID("eur")
-        TableColumn("Курс €") { (r: HistoryRow) in Cell.rate(r.eurRate) }
+        TableColumn("Курс €") { (r: HistoryRow) in Cell.rate(r.eurRate, needsAttention: r.ratesNeedAttention) }
           .width(min: 70, ideal: 80)
           .alignment(.trailing)
           .customizationID("eurRate")
@@ -149,8 +171,12 @@ private enum Cell {
     Text(Fmt.money(value)).monospacedDigit().fontWeight(bold ? .semibold : .regular)
   }
 
-  static func rate(_ value: Double) -> some View {
-    Text(Fmt.rate(value)).monospacedDigit().foregroundStyle(.secondary)
+  /// Orange when the rate was typed by hand or obtained for another day.
+  static func rate(_ value: Double, needsAttention: Bool) -> some View {
+    Text(Fmt.rate(value))
+      .monospacedDigit()
+      .foregroundStyle(needsAttention ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
+      .help(needsAttention ? "Курс введён вручную или получен на другую дату" : "")
   }
 
   /// Green for growth, red for decline; blank when there is nothing to compare with.
@@ -163,7 +189,7 @@ private enum Cell {
 
 #Preview {
   let container = try! ModelContainer(
-    for: Snapshot.self, Deposit.self, RateRecord.self,
+    for: Schema(FinanceSchema.models),
     configurations: ModelConfiguration(isStoredInMemoryOnly: true)
   )
   PreviewData.seed(container.mainContext)
