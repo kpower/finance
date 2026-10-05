@@ -10,6 +10,12 @@ protocol RateProvider: Sendable {
 
 enum RateProviders {
   static let all: [any RateProvider] = [CBRXMLProvider(), CBRJSONProvider()]
+  /// @AppStorage key of the provider chosen in "Курсы валют"; history uses the same one.
+  static let selectionKey = "ratesProviderID"
+
+  static func provider(id: String) -> any RateProvider {
+    all.first { $0.id == id } ?? all[0]
+  }
 }
 
 // MARK: - Shared helpers

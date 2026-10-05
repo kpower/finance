@@ -21,16 +21,14 @@ enum HistoryCalculator {
   }
 
   private static func makeRow(_ s: Snapshot) -> HistoryRow {
-    let sumRUB = s.items.reduce(0) { $0 + ($1.amountRUB ?? 0) }
-    let sumUSD = s.items.reduce(0) { $0 + ($1.amountUSD ?? 0) }
-    let sumEUR = s.items.reduce(0) { $0 + ($1.amountEUR ?? 0) }
-    let usdInRUB = sumUSD * s.usdRate
-    let eurInRUB = sumEUR * s.eurRate
-    let total = sumRUB + usdInRUB + eurInRUB
+    let usdInRUB = s.sumUSD * s.usdRate
+    let eurInRUB = s.sumEUR * s.eurRate
+    let total = s.sumRUB + usdInRUB + eurInRUB
     return HistoryRow(
-      id: s.persistentModelID, date: s.date,
-      sumRUB: sumRUB, sumUSD: sumUSD, usdRate: s.usdRate, usdInRUB: usdInRUB,
-      sumEUR: sumEUR, eurRate: s.eurRate, eurInRUB: eurInRUB,
+      id: s.persistentModelID, date: s.date, isSummaryOnly: s.kind == .summaryOnly,
+      ratesNeedAttention: s.ratesNeedAttention,
+      sumRUB: s.sumRUB, sumUSD: s.sumUSD, usdRate: s.usdRate, usdInRUB: usdInRUB,
+      sumEUR: s.sumEUR, eurRate: s.eurRate, eurInRUB: eurInRUB,
       totalRUB: total,
       totalUSD: s.usdRate == 0 ? nil : total / s.usdRate,
       totalEUR: s.eurRate == 0 ? nil : total / s.eurRate

@@ -21,7 +21,7 @@ final class RateRecord {
     self.createdAt = createdAt
   }
 
-  var rates: Rates { Rates(usd: usd, eur: eur, date: rateDate) }
+  var rates: Rates { Rates(usd: usd, eur: eur, date: rateDate, source: source) }
 }
 
 extension Array where Element == RateRecord {

@@ -160,12 +160,7 @@ struct DepositsView: View {
       )
       return
     }
-    let today = Calendar.current.startOfDay(for: .now)
-    let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today) ?? today
-    let existing = (try? modelContext.fetchCount(
-      FetchDescriptor<Snapshot>(predicate: #Predicate { $0.date >= today && $0.date < tomorrow })
-    )) ?? 0
-    if existing > 0 {
+    if SnapshotService.isDayTaken(.now, in: modelContext) {
       confirmReplace = true
     } else {
       captureSnapshot()
