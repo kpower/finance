@@ -6,10 +6,10 @@ struct BackupCommands: Commands {
 
   var body: some Commands {
     CommandGroup(replacing: .importExport) {
-      Button("Сохранить бэкап…") { actions?.export() }
+      Button { actions?.export() } label: { Text(.menuBackupSaveButton) }
         .keyboardShortcut("s", modifiers: [.command, .shift])
         .disabled(actions == nil)
-      Button("Загрузить бэкап…") { actions?.restore() }
+      Button { actions?.restore() } label: { Text(.menuBackupLoadButton) }
         .keyboardShortcut("o", modifiers: [.command, .shift])
         .disabled(actions == nil)
     }

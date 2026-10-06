@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 /// USD/EUR rates of a history entry: typed by hand or fetched for the entry's date.
@@ -10,29 +11,29 @@ struct SnapshotRatesEditor: View {
   /// New rates and the day they were obtained for (nil when typed by hand).
   let onChange: (Rates, Date?) -> Void
 
-  @AppStorage(RateProviders.selectionKey) private var providerID = RateProviders.all[0].id
+  @AppStorage(RateProviders.selectionKey) private var selectedProvider = RateProviders.cbrXML
   @State private var isLoading = false
-  @State private var errorMessage: String?
+  @State private var errorMessage: LocalizedStringResource?
 
   var body: some View {
     HStack(spacing: 12) {
-      rateField("Курс $", value: Binding(get: { rates.usd }, set: { manual(usd: $0, eur: rates.eur) }))
-      rateField("Курс €", value: Binding(get: { rates.eur }, set: { manual(usd: rates.usd, eur: $0) }))
+      rateField(.historySnapshotRatesUsdLabel, value: Binding(get: { rates.usd }, set: { manual(usd: $0, eur: rates.eur) }))
+      rateField(.historySnapshotRatesEurLabel, value: Binding(get: { rates.eur }, set: { manual(usd: rates.usd, eur: $0) }))
       fetchButton
       if let errorMessage {
         Image(systemName: "exclamationmark.triangle.fill")
           .foregroundStyle(.red)
-          .help(errorMessage)
+          .help(Text(errorMessage))
       } else if !rates.source.isEmpty {
-        Text(rates.source).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+        Text(RateSource.displayName(rates.source)).font(.caption).foregroundStyle(.secondary).lineLimit(1)
       }
     }
   }
 
-  private func rateField(_ title: String, value: Binding<Double>) -> some View {
+  private func rateField(_ title: LocalizedStringResource, value: Binding<Double>) -> some View {
     HStack(spacing: 6) {
       Text(title)
-      TextField(title, value: value, format: Fmt.moneyInput)
+      TextField(String(localized: title), value: value, format: Fmt.moneyInput)
         .labelsHidden()
         .multilineTextAlignment(.trailing)
         .monospacedDigit()
@@ -41,40 +42,40 @@ struct SnapshotRatesEditor: View {
   }
 
   @ViewBuilder private var fetchButton: some View {
-    let provider = RateProviders.provider(id: providerID)
+    let provider = selectedProvider.availableOrFirst
     if isLoading {
       ProgressView().controlSize(.small)
     } else {
-      Button("Загрузить курс на дату", systemImage: "arrow.down.circle", action: fetch)
-        .labelStyle(.iconOnly)
-        .buttonStyle(.borderless)
-        .foregroundStyle(needsAttention ? .orange : .secondary)
-        .help(
-          needsAttention
-            ? "Курс введён вручную или получен на другую дату. Загрузить курс на \(Fmt.date(date)) (\(provider.title))"
-            : "Загрузить курс на \(Fmt.date(date)) (\(provider.title))"
-        )
+      Button(action: fetch) {
+        Label { Text(.historySnapshotRatesFetchButton) } icon: { Image(systemName: "arrow.down.circle") }
+      }
+      .labelStyle(.iconOnly)
+      .buttonStyle(.borderless)
+      .foregroundStyle(needsAttention ? .orange : .secondary)
+      .help(
+        needsAttention
+          ? Text(.historySnapshotRatesFetchAttentionHelp(Fmt.date(date), provider.title))
+          : Text(.historySnapshotRatesFetchHelp(Fmt.date(date), provider.title))
+      )
     }
   }
 
   private func manual(usd: Double, eur: Double) {
     errorMessage = nil
-    onChange(Rates(usd: usd, eur: eur, date: date, source: Rates.manualSource), nil)
+    onChange(Rates(usd: usd, eur: eur, date: date, source: RateSource.manual), nil)
   }
 
   private func fetch() {
-    let provider = RateProviders.provider(id: providerID)
+    let provider = selectedProvider.availableOrFirst
     let day = date
     errorMessage = nil
     isLoading = true
     Task {
       defer { isLoading = false }
       do {
-        var fetched = try await provider.fetch(on: day)
-        fetched.source = provider.title
-        onChange(fetched, day)
+        onChange(try await provider.fetch(on: day), day)
       } catch {
-        errorMessage = error.localizedDescription
+        errorMessage = RateFetchFailureText.text(for: error)
       }
     }
   }

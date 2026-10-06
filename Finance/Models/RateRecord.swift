@@ -9,7 +9,7 @@ final class RateRecord {
   var rateDate: Date = Date.now
   var usd: Double = 0
   var eur: Double = 0
-  /// Human-readable source, e.g. "ЦБ РФ" or "Вручную".
+  /// `RateSource` identifier of where the rates came from.
   var source: String = ""
   var createdAt: Date = Date.now
 

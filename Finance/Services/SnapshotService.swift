@@ -22,7 +22,7 @@ enum SnapshotService {
   }
 
   /// Snapshots stored for `date`'s day (normally at most one).
-  static func snapshots(on date: Date, in context: ModelContext) throws -> [Snapshot] {
+  private static func snapshots(on date: Date, in context: ModelContext) throws -> [Snapshot] {
     let day = Calendar.current.startOfDay(for: date)
     let nextDay = Calendar.current.date(byAdding: .day, value: 1, to: day)!
     return try context.fetch(

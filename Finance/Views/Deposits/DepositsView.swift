@@ -18,11 +18,11 @@ struct DepositsView: View {
     Group {
       if deposits.isEmpty {
         ContentUnavailableView {
-          Label("Нет вкладов", systemImage: "banknote")
+          Label { Text(.depositsEmptyTitle) } icon: { Image(systemName: "banknote") }
         } description: {
-          Text("Добавьте первый вклад или счёт.")
+          Text(.depositsEmptyDescription)
         } actions: {
-          Button("Добавить вклад", action: addDeposit)
+          Button(action: addDeposit) { Text(.depositsEmptyAddButton) }
             .buttonStyle(.borderedProminent)
         }
       } else {
@@ -33,32 +33,38 @@ struct DepositsView: View {
         }
       }
     }
-    .navigationTitle("Вклады")
+    .navigationTitle(Text(.depositsNavigationTitle))
     .toolbar {
       ToolbarItemGroup {
-        Button("Добавить", systemImage: "plus", action: addDeposit)
-        Button("Удалить", systemImage: "trash", action: deleteSelected)
-          .disabled(selection.isEmpty)
-        Button("Сохранить в историю", systemImage: "clock.arrow.circlepath", action: requestSnapshot)
-          .disabled(deposits.isEmpty)
+        Button(action: addDeposit) {
+          Label { Text(.depositsToolbarAddButton) } icon: { Image(systemName: "plus") }
+        }
+        Button(action: deleteSelected) {
+          Label { Text(.depositsToolbarDeleteButton) } icon: { Image(systemName: "trash") }
+        }
+        .disabled(selection.isEmpty)
+        Button(action: requestSnapshot) {
+          Label { Text(.depositsToolbarSaveToHistoryButton) } icon: { Image(systemName: "clock.arrow.circlepath") }
+        }
+        .disabled(deposits.isEmpty)
       }
     }
     .alert(item: $alert) { item in
       Alert(
         title: Text(item.title),
         message: Text(item.message),
-        dismissButton: .default(Text("OK"))
+        dismissButton: .default(Text(.depositsAlertOkButton))
       )
     }
     .confirmationDialog(
-      "Снимок за сегодня уже есть",
+      Text(.depositsReplaceDialogTitle),
       isPresented: $confirmReplace,
       titleVisibility: .visible
     ) {
-      Button("Заменить", role: .destructive, action: captureSnapshot)
-      Button("Отмена", role: .cancel) {}
+      Button(role: .destructive, action: captureSnapshot) { Text(.depositsReplaceDialogReplaceButton) }
+      Button(role: .cancel) {} label: { Text(.depositsReplaceDialogCancelButton) }
     } message: {
-      Text("Сохранённое состояние за сегодня будет заменено текущим.")
+      Text(.depositsReplaceDialogMessage)
     }
   }
 
@@ -70,53 +76,53 @@ struct DepositsView: View {
       .sorted { $0.localizedStandardCompare($1) == .orderedAscending }
 
     return Table(deposits, selection: $selection) {
-      TableColumn("Название") { deposit in
-        TextCell(text: Bindable(deposit).name, prompt: "Название")
+      TableColumn(Text(.depositsTableNameColumn)) { deposit in
+        TextCell(text: Bindable(deposit).name, prompt: Text(.depositsTableNamePrompt))
       }
       .width(min: 120, ideal: 180)
 
-      TableColumn("Банк") { deposit in
+      TableColumn(Text(.depositsTableBankColumn)) { deposit in
         BankCell(deposit: deposit, banks: banks)
       }
       .width(min: 100, ideal: 140)
 
-      TableColumn("₽") { deposit in
+      TableColumn(Text(verbatim: "₽")) { deposit in
         AmountCell(value: Bindable(deposit).amountRUB)
       }
       .width(min: 90, ideal: 120)
       .alignment(.trailing)
 
-      TableColumn("$") { deposit in
+      TableColumn(Text(verbatim: "$")) { deposit in
         AmountCell(value: Bindable(deposit).amountUSD)
       }
       .width(min: 80, ideal: 100)
       .alignment(.trailing)
 
-      TableColumn("€") { deposit in
+      TableColumn(Text(verbatim: "€")) { deposit in
         AmountCell(value: Bindable(deposit).amountEUR)
       }
       .width(min: 80, ideal: 100)
       .alignment(.trailing)
 
-      TableColumn("Итого, ₽") { deposit in
+      TableColumn(Text(.depositsTableTotalRubColumn)) { deposit in
         TotalCell(deposit: deposit, rates: rates)
       }
       .width(min: 100, ideal: 130)
       .alignment(.trailing)
 
-      TableColumn("%") { deposit in
+      TableColumn(Text(verbatim: "%")) { deposit in
         AmountCell(value: Bindable(deposit).interestRate)
       }
       .width(min: 50, ideal: 60)
       .alignment(.trailing)
 
-      TableColumn("Срок, мес.") { deposit in
+      TableColumn(Text(.depositsTableTermColumn)) { deposit in
         TermCell(deposit: deposit)
       }
       .width(min: 60, ideal: 80)
       .alignment(.trailing)
 
-      TableColumn("Открыт") { deposit in
+      TableColumn(Text(.depositsTableOpenDateColumn)) { deposit in
         OptionalDateField(
           date: Binding(
             get: { deposit.openDate },
@@ -126,7 +132,7 @@ struct DepositsView: View {
       }
       .width(min: 130, ideal: 150)
 
-      TableColumn("Закрытие") { deposit in
+      TableColumn(Text(.depositsTableCloseDateColumn)) { deposit in
         CloseDateCell(deposit: deposit)
       }
       .width(min: 150, ideal: 170)
@@ -155,8 +161,8 @@ struct DepositsView: View {
     let rates = rates
     guard rates.usd > 0, rates.eur > 0 else {
       alert = DepositsAlert(
-        title: "Не заданы курсы валют",
-        message: "Сначала задайте курсы доллара и евро в разделе «Курсы валют», затем сохраните состояние в историю."
+        title: String(localized: .depositsNoRatesAlertTitle),
+        message: String(localized: .depositsNoRatesAlertMessage)
       )
       return
     }
@@ -171,11 +177,14 @@ struct DepositsView: View {
     do {
       try SnapshotService.capture(deposits: deposits, rates: rates, in: modelContext)
       alert = DepositsAlert(
-        title: "Сохранено",
-        message: "Состояние вкладов на \(Fmt.date(.now)) сохранено в историю."
+        title: String(localized: .depositsSavedAlertTitle),
+        message: String(localized: .depositsSavedAlertMessage(Fmt.date(.now)))
       )
     } catch {
-      alert = DepositsAlert(title: "Не удалось сохранить", message: error.localizedDescription)
+      alert = DepositsAlert(
+        title: String(localized: .depositsSaveFailedAlertTitle),
+        message: String(localized: .depositsSaveFailedAlertMessage)
+      )
     }
   }
 }
@@ -190,10 +199,10 @@ private struct DepositsAlert: Identifiable {
 
 private struct TextCell: View {
   @Binding var text: String
-  var prompt: LocalizedStringKey
+  var prompt: Text
 
   var body: some View {
-    TextField("", text: $text, prompt: Text(prompt))
+    TextField(text: $text, prompt: prompt) { prompt }
       .textFieldStyle(.plain)
   }
 }
@@ -208,7 +217,7 @@ private struct BankCell: View {
   }
 
   var body: some View {
-    TextField("", text: $deposit.bank, prompt: Text("Банк"))
+    TextField(text: $deposit.bank, prompt: Text(.depositsTableBankPrompt)) { Text(.depositsTableBankPrompt) }
       .textFieldStyle(.plain)
       .textInputSuggestions {
         ForEach(suggestions, id: \.self) { bank in
@@ -222,7 +231,7 @@ private struct AmountCell: View {
   @Binding var value: Double?
 
   var body: some View {
-    TextField("", value: $value, format: Fmt.moneyInput, prompt: Text("—"))
+    TextField(value: $value, format: Fmt.moneyInput, prompt: Text(verbatim: "—")) { EmptyView() }
       .textFieldStyle(.plain)
       .multilineTextAlignment(.trailing)
       .monospacedDigit()
@@ -234,14 +243,13 @@ private struct TermCell: View {
 
   var body: some View {
     TextField(
-      "",
       value: Binding(
         get: { deposit.termMonths },
         set: { deposit.updateTerm(openDate: deposit.openDate, termMonths: $0) }
       ),
       format: .number.grouping(.never),
-      prompt: Text("—")
-    )
+      prompt: Text(verbatim: "—")
+    ) { EmptyView() }
     .textFieldStyle(.plain)
     .multilineTextAlignment(.trailing)
     .monospacedDigit()
@@ -259,11 +267,13 @@ private struct CloseDateCell: View {
         defaultDate: deposit.expectedCloseDate ?? .now
       )
       if deposit.isCloseDateManual, let expected = deposit.expectedCloseDate {
-        Button("Рассчитать по сроку", systemImage: "arrow.uturn.backward.circle", action: deposit.recalculateCloseDate)
-          .labelStyle(.iconOnly)
-          .buttonStyle(.borderless)
-          .foregroundStyle(.orange)
-          .help("Дата введена вручную. Рассчитать по сроку: \(Fmt.date(expected))")
+        Button(action: deposit.recalculateCloseDate) {
+          Label { Text(.depositsTableRecalculateCloseDateButton) } icon: { Image(systemName: "arrow.uturn.backward.circle") }
+        }
+        .labelStyle(.iconOnly)
+        .buttonStyle(.borderless)
+        .foregroundStyle(.orange)
+        .help(Text(.depositsTableRecalculateCloseDateHelp(Fmt.date(expected))))
       }
     }
   }
@@ -280,9 +290,9 @@ private struct TotalCell: View {
   var body: some View {
     Group {
       if missingRate {
-        Text("нет курса").foregroundStyle(.secondary)
+        Text(.depositsTableNoRateLabel).foregroundStyle(.secondary)
       } else if deposit.isEmpty {
-        Text("—").foregroundStyle(.tertiary)
+        Text(verbatim: "—").foregroundStyle(.tertiary)
       } else {
         Text(Fmt.money(deposit.totalRUB(at: rates)))
       }
@@ -315,7 +325,7 @@ private struct TotalCell: View {
     closeDate: Deposit.expectedCloseDate(openDate: now, termMonths: 6),
     createdAt: now.addingTimeInterval(2)
   ))
-  context.insert(RateRecord(rateDate: now, usd: 92.5432, eur: 100.1234, source: "ЦБ РФ"))
+  context.insert(RateRecord(rateDate: now, usd: 92.5432, eur: 100.1234, source: RateProviders.cbrXML.rawValue))
   return NavigationStack { DepositsView() }
     .modelContainer(container)
     .frame(width: 1200, height: 500)

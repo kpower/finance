@@ -22,15 +22,15 @@ struct SnapshotDetailView: View {
       footer
     }
     .navigationTitle(snapshot.kind == .summaryOnly
-      ? "Архивная запись на \(Fmt.date(snapshot.date))"
-      : "Вклады на \(Fmt.date(snapshot.date))")
+      ? Text(.historyDetailArchiveTitle(Fmt.date(snapshot.date)))
+      : Text(.historyDetailDepositsTitle(Fmt.date(snapshot.date))))
     .alert(
-      "Дата занята",
+      Text(.historyDetailDateConflictAlertTitle),
       isPresented: Binding(get: { dateConflict != nil }, set: { if !$0 { dateConflict = nil } })
     ) {
-      Button("OK") {}
+      Button {} label: { Text(.historyDetailDateConflictAlertOkButton) }
     } message: {
-      Text("На \(Fmt.date(dateConflict)) уже есть запись в истории. Удалите её или выберите другую дату.")
+      Text(.historyDetailDateConflictAlertMessage(Fmt.date(dateConflict)))
     }
   }
 
@@ -38,9 +38,8 @@ struct SnapshotDetailView: View {
 
   private var header: some View {
     HStack(spacing: 20) {
-      DatePicker("Дата", selection: dateBinding, displayedComponents: .date)
+      DatePicker(selection: dateBinding, displayedComponents: .date) { Text(.historyDetailDateLabel) }
         .datePickerStyle(.field)
-        .environment(\.locale, Fmt.ruLocale)
         .fixedSize()
       SnapshotRatesEditor(
         date: snapshot.date,
@@ -72,48 +71,48 @@ struct SnapshotDetailView: View {
 
   private var itemsTable: some View {
     Table(snapshot.items) {
-      TableColumn("Название") { Text($0.name) }
+      TableColumn(Text(.historyDetailTableNameColumn)) { Text($0.name) }
         .width(min: 120, ideal: 180)
-      TableColumn("Банк") { Text($0.bank) }
+      TableColumn(Text(.historyDetailTableBankColumn)) { Text($0.bank) }
         .width(min: 90, ideal: 130)
-      TableColumn("₽") { money($0.amountRUB) }
+      TableColumn(Text(verbatim: "₽")) { money($0.amountRUB) }
         .width(min: 100, ideal: 115)
         .alignment(.trailing)
-      TableColumn("$") { money($0.amountUSD) }
+      TableColumn(Text(verbatim: "$")) { money($0.amountUSD) }
         .width(min: 90, ideal: 105)
         .alignment(.trailing)
-      TableColumn("€") { money($0.amountEUR) }
+      TableColumn(Text(verbatim: "€")) { money($0.amountEUR) }
         .width(min: 90, ideal: 105)
         .alignment(.trailing)
-      TableColumn("Итого ₽") {
+      TableColumn(Text(.historyDetailTableTotalRubColumn)) {
         Text($0.isEmpty ? "" : Fmt.money($0.totalRUB(at: rates)))
           .monospacedDigit().fontWeight(.semibold)
       }
       .width(min: 110, ideal: 125)
       .alignment(.trailing)
-      TableColumn("%") { item in
-        Text(item.interestRate.map { $0.formatted(.number.precision(.fractionLength(0...2)).locale(Fmt.ruLocale)) } ?? "")
+      TableColumn(Text(verbatim: "%")) { item in
+        Text(item.interestRate.map(Fmt.percent) ?? "")
           .monospacedDigit()
       }
       .width(min: 50, ideal: 60)
       .alignment(.trailing)
-      TableColumn("Срок, мес.") { Text($0.termMonths.map(String.init) ?? "").monospacedDigit() }
+      TableColumn(Text(.historyDetailTableTermColumn)) { Text($0.termMonths.map(String.init) ?? "").monospacedDigit() }
         .width(min: 70, ideal: 80)
         .alignment(.trailing)
-      TableColumn("Открыт") { Text(Fmt.date($0.openDate)).monospacedDigit() }
+      TableColumn(Text(.historyDetailTableOpenDateColumn)) { Text(Fmt.date($0.openDate)).monospacedDigit() }
         .width(min: 80, ideal: 90)
-      TableColumn("Закрытие") { Text(Fmt.date($0.closeDate)).monospacedDigit() }
+      TableColumn(Text(.historyDetailTableCloseDateColumn)) { Text(Fmt.date($0.closeDate)).monospacedDigit() }
         .width(min: 80, ideal: 90)
     }
   }
 
   private var summaryNote: some View {
     VStack(spacing: 16) {
-      ContentUnavailableView(
-        "Только суммы",
-        systemImage: "archivebox",
-        description: Text("Архивная запись без детализации по вкладам.")
-      )
+      ContentUnavailableView {
+        Label { Text(.historyDetailSummaryOnlyTitle) } icon: { Image(systemName: "archivebox") }
+      } description: {
+        Text(.historyDetailSummaryOnlyDescription)
+      }
       .fixedSize(horizontal: false, vertical: true)
       HStack(spacing: 20) {
         sumField("₽", value: $snapshot.summaryRUB)
@@ -148,7 +147,7 @@ struct SnapshotDetailView: View {
       sum("Σ $", snapshot.sumUSD)
       sum("Σ €", snapshot.sumEUR)
       VStack(alignment: .trailing, spacing: 2) {
-        Text("Итого в ₽").font(.caption).foregroundStyle(.secondary)
+        Text(.historyDetailFooterTotalRubLabel).font(.caption).foregroundStyle(.secondary)
         Text(Fmt.money(snapshot.totalRUB)).font(.title3.weight(.semibold)).monospacedDigit()
       }
     }

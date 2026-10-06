@@ -3,18 +3,6 @@ import SwiftData
 
 /// Converts all stored data to a JSON backup and back.
 enum BackupService {
-  enum Failure: LocalizedError {
-    case unreadable(String)
-    case unsupportedVersion(Int)
-
-    var errorDescription: String? {
-      switch self {
-      case .unreadable(let reason): "Файл не похож на бэкап Finance: \(reason)"
-      case .unsupportedVersion(let version): "Бэкап версии \(version) создан более новой версией приложения."
-      }
-    }
-  }
-
   // MARK: Export
 
   static func makeBackup(from context: ModelContext) throws -> Backup {
@@ -56,13 +44,8 @@ enum BackupService {
   static func decode(_ data: Data) throws -> Backup {
     let decoder = JSONDecoder()
     decoder.dateDecodingStrategy = .iso8601
-    let backup: Backup
-    do {
-      backup = try decoder.decode(Backup.self, from: data)
-    } catch {
-      throw Failure.unreadable(error.localizedDescription)
-    }
-    guard backup.version <= Backup.currentVersion else { throw Failure.unsupportedVersion(backup.version) }
+    let backup = try decoder.decode(Backup.self, from: data)
+    guard backup.version <= Backup.currentVersion else { throw BackupError.unsupportedVersion(backup.version) }
     return backup
   }
 

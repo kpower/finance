@@ -1,21 +1,10 @@
 import Foundation
 
 /// Source of USD/EUR rates (RUB per unit). Fetching is always user-initiated.
+/// Registered as a case of `RateProviders`, which also holds its identifier and name.
 protocol RateProvider: Sendable {
-  var id: String { get }
-  var title: String { get }
   /// Rates for the given date, or the latest published ones when `date` is nil.
   func fetch(on date: Date?) async throws -> Rates
-}
-
-enum RateProviders {
-  static let all: [any RateProvider] = [CBRXMLProvider(), CBRJSONProvider()]
-  /// @AppStorage key of the provider chosen in "Курсы валют"; history uses the same one.
-  static let selectionKey = "ratesProviderID"
-
-  static func provider(id: String) -> any RateProvider {
-    all.first { $0.id == id } ?? all[0]
-  }
 }
 
 // MARK: - Shared helpers
@@ -28,19 +17,13 @@ extension RateProvider {
     return f
   }
 
-  /// Response body and HTTP status; transport failures become `RateFetchError.network`.
+  /// Response body and HTTP status; transport failures are thrown as `URLError`.
   static func download(_ url: URL) async throws -> (Data, Int) {
     var request = URLRequest(url: url, timeoutInterval: 20)
     request.setValue("Finance/1.0", forHTTPHeaderField: "User-Agent")
-    do {
-      let (data, response) = try await URLSession.shared.data(for: request)
-      guard let http = response as? HTTPURLResponse else { throw RateFetchError.malformed }
-      return (data, http.statusCode)
-    } catch let error as RateFetchError {
-      throw error
-    } catch {
-      throw RateFetchError.network(error.localizedDescription)
-    }
+    let (data, response) = try await URLSession.shared.data(for: request)
+    guard let http = response as? HTTPURLResponse else { throw RateFetchError.malformed }
+    return (data, http.statusCode)
   }
 
   /// Picks USD and EUR out of a "currency code → RUB per unit" map.
