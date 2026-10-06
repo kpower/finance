@@ -75,7 +75,7 @@ private struct TotalChart: View {
       .chartYAxis {
         AxisMarks(values: .automatic(desiredCount: 4)) { value in
           AxisGridLine().foregroundStyle(.quaternary)
-          AxisValueLabel {
+          AxisValueLabel(anchor: .leading) {
             if let number = value.as(Double.self) {
               Text(number.formatted(.number.notation(.compactName).precision(.significantDigits(1...4))))
             }
@@ -85,7 +85,7 @@ private struct TotalChart: View {
       .chartXAxis {
         AxisMarks(values: xTicks) { _ in
           AxisGridLine().foregroundStyle(.quaternary)
-          AxisValueLabel(format: .dateTime.day(.twoDigits).month(.twoDigits).year(.twoDigits))
+          AxisValueLabel(format: .dateTime.day(.twoDigits).month(.twoDigits).year(.twoDigits), anchor: .top)
         }
       }
       .frame(minHeight: 140)
