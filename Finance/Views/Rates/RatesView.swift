@@ -4,7 +4,7 @@ import SwiftUI
 struct RatesView: View {
   @Environment(\.modelContext) private var context
   @Query(sort: \RateRecord.createdAt, order: .reverse) private var records: [RateRecord]
-  @AppStorage(RateProviders.selectionKey) private var providerID = RateProviders.all[0].id
+  @AppStorage(RateProviders.selectionKey) private var selectedProvider = RateProviders.cbrXML
 
   @State private var manualUSD: Double?
   @State private var manualEUR: Double?
@@ -15,11 +15,12 @@ struct RatesView: View {
   @State private var isLoading = false
   @State private var fetchTask: Task<Void, Never>?
   @State private var preview: Rates?
-  @State private var errorMessage: String?
+  @State private var errorMessage: LocalizedStringResource?
   @State private var selection = Set<RateRecord.ID>()
 
-  private var provider: any RateProvider {
-    RateProviders.provider(id: providerID)
+  /// Selected provider; falls back to an available one if the stored choice was retired.
+  private var provider: Binding<RateProviders> {
+    Binding(get: { selectedProvider.availableOrFirst }, set: { selectedProvider = $0 })
   }
 
   private var manualValid: Bool {
@@ -35,36 +36,38 @@ struct RatesView: View {
       sourcesSection
     }
     .formStyle(.grouped)
-    .navigationTitle("Курсы валют")
+    .navigationTitle(Text(.ratesNavigationTitle))
   }
 
   // MARK: Current
 
   private var currentSection: some View {
-    Section("Действующий курс") {
+    Section {
       if let latest = records.first {
         HStack(alignment: .top, spacing: 48) {
           bigRate("USD", latest.usd)
           bigRate("EUR", latest.eur)
           Spacer()
           VStack(alignment: .trailing, spacing: 4) {
-            Text("Курс на \(Fmt.date(latest.rateDate))")
-            Text("Источник: \(latest.source)")
-            Text("Применён \(applied(latest.createdAt))")
+            Text(.ratesCurrentRateDateLabel(Fmt.date(latest.rateDate)))
+            Text(.ratesCurrentSourceLabel(RateSource.displayName(latest.source)))
+            Text(.ratesCurrentAppliedLabel(Fmt.dateTime(latest.createdAt)))
           }
           .font(.callout)
           .foregroundStyle(.secondary)
         }
       } else {
-        Text("Курс не задан. Загрузите его из источника или введите вручную.")
+        Text(.ratesCurrentEmptyLabel)
           .foregroundStyle(.secondary)
       }
+    } header: {
+      Text(.ratesCurrentHeader)
     }
   }
 
   private func bigRate(_ code: String, _ value: Double) -> some View {
     VStack(alignment: .leading, spacing: 2) {
-      Text("\(code) → RUB").font(.callout).foregroundStyle(.secondary)
+      Text(verbatim: "\(code) → RUB").font(.callout).foregroundStyle(.secondary)
       Text(Fmt.rate(value)).font(.system(size: 34, weight: .semibold)).monospacedDigit()
     }
   }
@@ -72,41 +75,51 @@ struct RatesView: View {
   // MARK: Manual
 
   private var manualSection: some View {
-    Section("Ввести вручную") {
-      TextField("USD, ₽", value: $manualUSD, format: Fmt.moneyInput, prompt: Text("0,0000"))
-      TextField("EUR, ₽", value: $manualEUR, format: Fmt.moneyInput, prompt: Text("0,0000"))
-      DatePicker("Дата курса", selection: $manualDate, displayedComponents: .date)
+    Section {
+      TextField(value: $manualUSD, format: Fmt.moneyInput, prompt: Text(verbatim: Fmt.rate(0))) {
+        Text(.ratesManualUsdField)
+      }
+      TextField(value: $manualEUR, format: Fmt.moneyInput, prompt: Text(verbatim: Fmt.rate(0))) {
+        Text(.ratesManualEurField)
+      }
+      DatePicker(selection: $manualDate, displayedComponents: .date) { Text(.ratesManualDateField) }
       HStack {
         Spacer()
-        Button("Применить") {
+        Button {
           guard let usd = manualUSD, let eur = manualEUR else { return }
-          apply(Rates(usd: usd, eur: eur, date: manualDate), source: Rates.manualSource)
+          apply(Rates(usd: usd, eur: eur, date: manualDate, source: RateSource.manual))
           manualUSD = nil
           manualEUR = nil
+        } label: {
+          Text(.ratesManualApplyButton)
         }
         .disabled(!manualValid)
       }
+    } header: {
+      Text(.ratesManualHeader)
     }
   }
 
   // MARK: Fetch
 
   private var fetchSection: some View {
-    Section("Загрузить из источника") {
-      Picker("Источник", selection: $providerID) {
-        ForEach(RateProviders.all, id: \.id) { Text($0.title).tag($0.id) }
+    Section {
+      Picker(selection: provider) {
+        ForEach(RateProviders.available) { Text($0.title).tag($0) }
+      } label: {
+        Text(.ratesFetchSourcePicker)
       }
-      Toggle("На дату", isOn: $useDate)
+      Toggle(isOn: $useDate) { Text(.ratesFetchOnDateToggle) }
       if useDate {
-        DatePicker("Дата", selection: $fetchDate, in: ...Date.now, displayedComponents: .date)
+        DatePicker(selection: $fetchDate, in: ...Date.now, displayedComponents: .date) { Text(.ratesFetchDateField) }
       }
       HStack {
         if isLoading {
           ProgressView().controlSize(.small)
-          Text("Загрузка…").foregroundStyle(.secondary)
+          Text(.ratesFetchLoadingLabel).foregroundStyle(.secondary)
         }
         Spacer()
-        Button("Загрузить курс", action: startFetch).disabled(isLoading)
+        Button(action: startFetch) { Text(.ratesFetchLoadButton) }.disabled(isLoading)
       }
       if let errorMessage {
         Text(errorMessage).foregroundStyle(.red)
@@ -114,25 +127,29 @@ struct RatesView: View {
       if let preview {
         previewBox(preview)
       }
+    } header: {
+      Text(.ratesFetchHeader)
     }
   }
 
   private func previewBox(_ rates: Rates) -> some View {
     VStack(alignment: .leading, spacing: 10) {
-      Text("Предпросмотр: \(provider.title)").font(.headline)
+      Text(.ratesPreviewTitle(RateSource.displayName(rates.source))).font(.headline)
       HStack(spacing: 40) {
         bigRate("USD", rates.usd)
         bigRate("EUR", rates.eur)
         if let date = rates.date {
-          Text("Курс на \(Fmt.date(date))").foregroundStyle(.secondary)
+          Text(.ratesPreviewRateDateLabel(Fmt.date(date))).foregroundStyle(.secondary)
         }
       }
       HStack {
         Spacer()
-        Button("Отмена") { preview = nil }
-        Button("Применить") {
-          apply(rates, source: provider.title)
+        Button { preview = nil } label: { Text(.ratesPreviewCancelButton) }
+        Button {
+          apply(rates)
           preview = nil
+        } label: {
+          Text(.ratesPreviewApplyButton)
         }
         .keyboardShortcut(.defaultAction)
       }
@@ -142,7 +159,7 @@ struct RatesView: View {
   }
 
   private func startFetch() {
-    let provider = provider
+    let provider = provider.wrappedValue
     let date = useDate ? fetchDate : nil
     errorMessage = nil
     preview = nil
@@ -154,30 +171,30 @@ struct RatesView: View {
         let rates = try await provider.fetch(on: date)
         if !Task.isCancelled { preview = rates }
       } catch {
-        if !Task.isCancelled { errorMessage = error.localizedDescription }
+        if !Task.isCancelled { errorMessage = RateFetchFailureText.text(for: error) }
       }
     }
   }
 
-  private func apply(_ rates: Rates, source: String) {
+  private func apply(_ rates: Rates) {
     context.insert(RateRecord(
-      rateDate: rates.date ?? .now, usd: rates.usd, eur: rates.eur, source: source))
+      rateDate: rates.date ?? .now, usd: rates.usd, eur: rates.eur, source: rates.source))
   }
 
   // MARK: History
 
   private var historySection: some View {
-    Section("История курсов") {
+    Section {
       Table(records, selection: $selection) {
-        TableColumn("Применён") { Text(applied($0.createdAt)) }
-        TableColumn("Дата курса") { Text(Fmt.date($0.rateDate)) }
-        TableColumn("USD") { Text(Fmt.rate($0.usd)).monospacedDigit() }
-        TableColumn("EUR") { Text(Fmt.rate($0.eur)).monospacedDigit() }
-        TableColumn("Источник") { record in
+        TableColumn(Text(.ratesHistoryTableAppliedColumn)) { Text(Fmt.dateTime($0.createdAt)) }
+        TableColumn(Text(.ratesHistoryTableRateDateColumn)) { Text(Fmt.date($0.rateDate)) }
+        TableColumn(Text(verbatim: "USD")) { Text(Fmt.rate($0.usd)).monospacedDigit() }
+        TableColumn(Text(verbatim: "EUR")) { Text(Fmt.rate($0.eur)).monospacedDigit() }
+        TableColumn(Text(.ratesHistoryTableSourceColumn)) { record in
           HStack {
-            Text(record.source)
+            Text(RateSource.displayName(record.source))
             if record.id == records.first?.id {
-              Text("текущий").font(.caption).foregroundStyle(.green)
+              Text(.ratesHistoryTableCurrentBadge).font(.caption).foregroundStyle(.green)
             }
           }
         }
@@ -185,45 +202,52 @@ struct RatesView: View {
       .contextMenu(forSelectionType: RateRecord.ID.self) { ids in
         let picked = records.filter { ids.contains($0.id) }
         if picked.count == 1, let record = picked.first, record.id != records.first?.id {
-          Button("Сделать текущим") {
+          Button {
             context.insert(RateRecord(
               rateDate: record.rateDate, usd: record.usd, eur: record.eur, source: record.source))
+          } label: {
+            Text(.ratesHistoryContextMenuMakeCurrentButton)
           }
         }
         if !picked.isEmpty {
-          Button("Удалить", role: .destructive) {
+          Button(role: .destructive) {
             picked.forEach(context.delete)
             selection.subtract(ids)
+          } label: {
+            Text(.ratesHistoryContextMenuDeleteButton)
           }
         }
       }
       .frame(minHeight: 220)
+    } header: {
+      Text(.ratesHistoryHeader)
     }
-  }
-
-  private func applied(_ date: Date) -> String {
-    date.formatted(.dateTime.day(.twoDigits).month(.twoDigits).year().hour().minute().locale(Fmt.ruLocale))
   }
 
   // MARK: Sources help
 
   private var sourcesSection: some View {
     Section {
-      DisclosureGroup("Источники") {
+      DisclosureGroup {
         VStack(alignment: .leading, spacing: 8) {
-          source("ЦБ РФ (XML)", "официальный курс, ключ не нужен; публикуется на следующий рабочий день.")
-          source("cbr-xml-daily.ru (JSON)", "удобное зеркало курсов ЦБ с архивом; неофициальное, без гарантий доступности.")
-          source("MOEX ISS", "биржевые данные; торги USD/EUR на Мосбирже прекращены в июне 2024, остались только внебиржевые/индикативные курсы. Не реализовано.")
-          source("Коммерческие курсы банков", "например публичный endpoint T-Банка currency_rates: отражает курс покупки/продажи банка, но неофициальный и может измениться. Не реализовано.")
+          source(.ratesSourcesCbrXmlName, .ratesSourcesCbrXmlDescription)
+          source(.ratesSourcesCbrJsonName, .ratesSourcesCbrJsonDescription)
+          source(.ratesSourcesMoexName, .ratesSourcesMoexDescription)
+          source(.ratesSourcesBanksName, .ratesSourcesBanksDescription)
         }
         .font(.callout)
         .padding(.vertical, 4)
+      } label: {
+        Text(.ratesSourcesDisclosure)
       }
     }
   }
 
-  private func source(_ name: String, _ text: String) -> some View {
-    Text("\(Text(name).bold()) — \(text)").foregroundStyle(.secondary)
+  private func source(_ name: LocalizedStringResource, _ text: LocalizedStringResource) -> some View {
+    VStack(alignment: .leading, spacing: 2) {
+      Text(name).bold()
+      Text(text).foregroundStyle(.secondary)
+    }
   }
 }
 
@@ -231,9 +255,9 @@ struct RatesView: View {
   let container = try! ModelContainer(
     for: Schema(FinanceSchema.models), configurations: ModelConfiguration(isStoredInMemoryOnly: true))
   container.mainContext.insert(RateRecord(
-    rateDate: .now, usd: 83.4839, eur: 94.3201, source: "ЦБ РФ (XML)"))
+    rateDate: .now, usd: 83.4839, eur: 94.3201, source: RateProviders.cbrXML.rawValue))
   container.mainContext.insert(RateRecord(
-    rateDate: .now.addingTimeInterval(-86400 * 3), usd: 82.1, eur: 92.7, source: Rates.manualSource,
+    rateDate: .now.addingTimeInterval(-86400 * 3), usd: 82.1, eur: 92.7, source: RateSource.manual,
     createdAt: .now.addingTimeInterval(-86400 * 3)))
   return RatesView().modelContainer(container).frame(width: 760, height: 900)
 }

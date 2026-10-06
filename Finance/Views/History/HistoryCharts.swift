@@ -1,4 +1,5 @@
 import Charts
+import Foundation
 import SwiftUI
 
 /// Total over time, converted to each currency: one chart per currency, hover synced across them.
@@ -11,16 +12,16 @@ struct HistoryCharts: View {
   var body: some View {
     let sorted = rows.sorted { $0.date < $1.date }
     HStack(spacing: 16) {
-      TotalChart(title: "Итого в ₽", points: sorted.map { ($0, $0.totalRUB) }, hoveredDate: $hoveredDate)
-      TotalChart(title: "Итого в $", points: sorted.compactMap { r in r.totalUSD.map { (r, $0) } }, hoveredDate: $hoveredDate)
-      TotalChart(title: "Итого в €", points: sorted.compactMap { r in r.totalEUR.map { (r, $0) } }, hoveredDate: $hoveredDate)
+      TotalChart(title: .historyChartTotalRubTitle, points: sorted.map { ($0, $0.totalRUB) }, hoveredDate: $hoveredDate)
+      TotalChart(title: .historyChartTotalUsdTitle, points: sorted.compactMap { r in r.totalUSD.map { (r, $0) } }, hoveredDate: $hoveredDate)
+      TotalChart(title: .historyChartTotalEurTitle, points: sorted.compactMap { r in r.totalEUR.map { (r, $0) } }, hoveredDate: $hoveredDate)
     }
     .padding(16)
   }
 }
 
 private struct TotalChart: View {
-  let title: String
+  let title: LocalizedStringResource
   let points: [(row: HistoryRow, value: Double)]
   @Binding var hoveredDate: Date?
 
@@ -49,17 +50,19 @@ private struct TotalChart: View {
   }
 
   var body: some View {
+    let dateLabel = String(localized: .historyChartDateAxisLabel)
+    let valueLabel = String(localized: title)
     VStack(alignment: .leading, spacing: 8) {
       Text(title).font(.headline)
       Chart {
         ForEach(points, id: \.row.id) { point in
-          LineMark(x: .value("Дата", point.row.date, unit: .day), y: .value(title, point.value))
+          LineMark(x: .value(dateLabel, point.row.date, unit: .day), y: .value(valueLabel, point.value))
             .lineStyle(StrokeStyle(lineWidth: 2))
-          PointMark(x: .value("Дата", point.row.date, unit: .day), y: .value(title, point.value))
+          PointMark(x: .value(dateLabel, point.row.date, unit: .day), y: .value(valueLabel, point.value))
             .symbolSize(40)
         }
         if let hovered {
-          RuleMark(x: .value("Дата", hovered.row.date, unit: .day))
+          RuleMark(x: .value(dateLabel, hovered.row.date, unit: .day))
             .foregroundStyle(.secondary.opacity(0.5))
             .lineStyle(StrokeStyle(lineWidth: 1))
             .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
@@ -74,7 +77,7 @@ private struct TotalChart: View {
           AxisGridLine().foregroundStyle(.quaternary)
           AxisValueLabel {
             if let number = value.as(Double.self) {
-              Text(number.formatted(.number.notation(.compactName).precision(.significantDigits(1...4)).locale(Fmt.ruLocale)))
+              Text(number.formatted(.number.notation(.compactName).precision(.significantDigits(1...4))))
             }
           }
         }
@@ -82,7 +85,7 @@ private struct TotalChart: View {
       .chartXAxis {
         AxisMarks(values: xTicks) { _ in
           AxisGridLine().foregroundStyle(.quaternary)
-          AxisValueLabel(format: .dateTime.day(.twoDigits).month(.twoDigits).year(.twoDigits).locale(Fmt.ruLocale))
+          AxisValueLabel(format: .dateTime.day(.twoDigits).month(.twoDigits).year(.twoDigits))
         }
       }
       .frame(minHeight: 140)
@@ -95,7 +98,7 @@ private struct TotalChart: View {
       Text(Fmt.date(point.row.date)).font(.caption).foregroundStyle(.secondary)
       Text(Fmt.money(point.value)).font(.callout.weight(.semibold)).monospacedDigit()
       if point.row.isSummaryOnly {
-        Text("архивная запись").font(.caption2).foregroundStyle(.secondary)
+        Text(.historyChartArchiveEntryLabel).font(.caption2).foregroundStyle(.secondary)
       }
     }
     .padding(6)

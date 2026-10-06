@@ -7,8 +7,12 @@ struct MainView: View {
   var body: some View {
     NavigationSplitView {
       List(AppSection.allCases, selection: sidebarSelection) { section in
-        Label(section.title, systemImage: section.systemImage)
-          .tag(section)
+        Label {
+          Text(section.title)
+        } icon: {
+          Image(systemName: section.systemImage)
+        }
+        .tag(section)
       }
       .navigationSplitViewColumnWidth(min: 160, ideal: 190)
     } detail: {

@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-/// State of all deposits and rates saved on a given day (section "История").
+/// State of all deposits and rates saved on a given day (History section).
 @Model
 final class Snapshot {
   enum Kind: String, Codable, Sendable {
@@ -15,7 +15,7 @@ final class Snapshot {
   var date: Date = Date.now
   var usdRate: Double = 0
   var eurRate: Double = 0
-  /// Where the rates came from (`Rates.manualSource` when typed by hand).
+  /// `RateSource` identifier of where the rates came from.
   var ratesSource: String = ""
   /// Day the rates were obtained for; nil when typed by hand.
   /// Differs from `date` after the snapshot's date has been changed.
@@ -35,7 +35,7 @@ final class Snapshot {
     self.usdRate = rates.usd
     self.eurRate = rates.eur
     self.ratesSource = rates.source
-    self.ratesRequestedFor = rates.source == Rates.manualSource ? nil : day
+    self.ratesRequestedFor = RateSource.isManual(rates.source) ? nil : day
     self.items = items
     self.createdAt = createdAt
   }
@@ -71,7 +71,7 @@ final class Snapshot {
   }
 
   static func ratesNeedAttention(source: String, requestedFor: Date?, date: Date) -> Bool {
-    if source == Rates.manualSource { return true }
+    if RateSource.isManual(source) { return true }
     // Entries saved before rate tracking existed: origin unknown, nothing to flag.
     guard let requestedFor else { return false }
     return !Calendar.current.isDate(requestedFor, inSameDayAs: date)
@@ -79,7 +79,7 @@ final class Snapshot {
 
   /// Moves the snapshot to another day, keeping track of which day its rates belong to.
   func move(to newDate: Date) {
-    if ratesRequestedFor == nil, ratesSource != Rates.manualSource {
+    if ratesRequestedFor == nil, !RateSource.isManual(ratesSource) {
       ratesRequestedFor = date
     }
     date = Calendar.current.startOfDay(for: newDate)

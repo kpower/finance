@@ -2,9 +2,6 @@ import Foundation
 
 /// https://www.cbr.ru/scripts/XML_daily.asp — official Bank of Russia rates, windows-1251 XML, decimal comma.
 struct CBRXMLProvider: RateProvider {
-  let id = "cbr-xml"
-  let title = "ЦБ РФ (XML)"
-
   func fetch(on date: Date?) async throws -> Rates {
     var components = URLComponents(string: "https://www.cbr.ru/scripts/XML_daily.asp")!
     if let date {
@@ -15,7 +12,7 @@ struct CBRXMLProvider: RateProvider {
     return try Self.parse(data)
   }
 
-  static func parse(_ data: Data) throws -> Rates {
+  private static func parse(_ data: Data) throws -> Rates {
     // XMLParser can't be trusted with windows-1251 declarations; transcode to UTF-8 first.
     guard var text = String(data: data, encoding: .windowsCP1251) else { throw RateFetchError.malformed }
     if let range = text.range(of: #"encoding="[^"]*""#, options: .regularExpression) {

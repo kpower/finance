@@ -2,9 +2,6 @@ import Foundation
 
 /// https://www.cbr-xml-daily.ru — unofficial JSON mirror of the CBR daily rates.
 struct CBRJSONProvider: RateProvider {
-  let id = "cbr-json"
-  let title = "cbr-xml-daily.ru (JSON)"
-
   private struct Response: Decodable {
     struct Valute: Decodable {
       let Nominal: Double
@@ -33,7 +30,7 @@ struct CBRJSONProvider: RateProvider {
     throw RateFetchError.notFound
   }
 
-  static func parse(_ data: Data) throws -> Rates {
+  private static func parse(_ data: Data) throws -> Rates {
     guard let response = try? JSONDecoder().decode(Response.self, from: data) else {
       throw RateFetchError.malformed
     }

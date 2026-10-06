@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 /// Totals per currency and grand total in rubles, shown under the deposits table.
@@ -18,9 +19,9 @@ struct DepositsSummaryBar: View {
         total("€", Fmt.money(eur))
         Divider().frame(height: 16)
         HStack(spacing: 6) {
-          Text("Итого, ₽").foregroundStyle(.secondary)
+          Text(.depositsSummaryTotalRubLabel).foregroundStyle(.secondary)
           if missing {
-            Text("нет курса").foregroundStyle(.secondary)
+            Text(.depositsSummaryNoRateLabel).foregroundStyle(.secondary)
           } else {
             Text(Fmt.money(rub + usd * rates.usd + eur * rates.eur)).bold()
           }
@@ -44,10 +45,11 @@ struct DepositsSummaryBar: View {
     }
   }
 
-  private var ratesLine: String {
-    guard rates.usd > 0 || rates.eur > 0 else { return "Курсы валют не заданы" }
-    var line = "Курсы: $ \(Fmt.rate(rates.usd)) · € \(Fmt.rate(rates.eur))"
-    if let date = rates.date { line += " на \(Fmt.date(date))" }
-    return line
+  private var ratesLine: LocalizedStringResource {
+    guard rates.usd > 0 || rates.eur > 0 else { return .depositsSummaryRatesMissingLabel }
+    if let date = rates.date {
+      return .depositsSummaryRatesOnDateLabel(Fmt.rate(rates.usd), Fmt.rate(rates.eur), Fmt.date(date))
+    }
+    return .depositsSummaryRatesLabel(Fmt.rate(rates.usd), Fmt.rate(rates.eur))
   }
 }

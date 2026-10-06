@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-/// A live, editable deposit or account (section "Вклады").
+/// A live, editable deposit or account (Deposits section).
 @Model
 final class Deposit: DepositAmounts {
   var name: String = ""

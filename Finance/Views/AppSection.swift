@@ -1,3 +1,5 @@
+import Foundation
+
 /// Top-level sections shown in the sidebar.
 enum AppSection: String, CaseIterable, Identifiable, Hashable {
   case deposits
@@ -6,11 +8,11 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable {
 
   var id: Self { self }
 
-  var title: String {
+  var title: LocalizedStringResource {
     switch self {
-    case .deposits: "Вклады"
-    case .history: "История"
-    case .rates: "Курсы валют"
+    case .deposits: .sidebarSectionDepositsTitle
+    case .history: .sidebarSectionHistoryTitle
+    case .rates: .sidebarSectionRatesTitle
     }
   }
 

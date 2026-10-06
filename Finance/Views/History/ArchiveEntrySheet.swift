@@ -10,7 +10,7 @@ struct ArchiveEntrySheet: View {
   @State private var rub: Double?
   @State private var usd: Double?
   @State private var eur: Double?
-  @State private var rates = Rates(usd: 0, eur: 0, date: nil, source: Rates.manualSource)
+  @State private var rates = Rates(usd: 0, eur: 0, date: nil, source: RateSource.manual)
   @State private var ratesRequestedFor: Date?
 
   private var isDayTaken: Bool { SnapshotService.isDayTaken(date, in: context) }
@@ -22,41 +22,42 @@ struct ArchiveEntrySheet: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 16) {
-      Text("Архивная запись").font(.title2.weight(.semibold))
-      Text("Хранит только итоговые суммы по валютам на дату, без распределения по вкладам.")
+      Text(.archiveEntryHeaderTitle).font(.title2.weight(.semibold))
+      Text(.archiveEntryHeaderDescription)
         .foregroundStyle(.secondary)
         .fixedSize(horizontal: false, vertical: true)
 
       Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 12) {
         GridRow {
-          Text("Дата").gridColumnAlignment(.trailing)
+          Text(.archiveEntryFormDateLabel).gridColumnAlignment(.trailing)
           HStack(spacing: 8) {
-            DatePicker("Дата", selection: $date, in: ...Date.now, displayedComponents: .date)
-              .labelsHidden()
-              .datePickerStyle(.field)
-              .environment(\.locale, Fmt.ruLocale)
+            DatePicker(selection: $date, in: ...Date.now, displayedComponents: .date) {
+              Text(.archiveEntryFormDateLabel)
+            }
+            .labelsHidden()
+            .datePickerStyle(.field)
               .fixedSize()
             if isDayTaken {
-              Text("На эту дату уже есть запись.").foregroundStyle(.red)
+              Text(.archiveEntryFormDateTakenError).foregroundStyle(.red)
             }
           }
         }
         Divider().gridCellUnsizedAxes(.horizontal)
         GridRow {
-          Text("Сумма, ₽")
-          amountField("₽", $rub)
+          Text(.archiveEntryFormRubLabel)
+          amountField(.archiveEntryFormRubLabel, $rub)
         }
         GridRow {
-          Text("Сумма, $")
-          amountField("$", $usd)
+          Text(.archiveEntryFormUsdLabel)
+          amountField(.archiveEntryFormUsdLabel, $usd)
         }
         GridRow {
-          Text("Сумма, €")
-          amountField("€", $eur)
+          Text(.archiveEntryFormEurLabel)
+          amountField(.archiveEntryFormEurLabel, $eur)
         }
         Divider().gridCellUnsizedAxes(.horizontal)
         GridRow {
-          Text("Курсы")
+          Text(.archiveEntryFormRatesLabel)
           SnapshotRatesEditor(date: date, rates: rates, needsAttention: ratesNeedAttention) { newRates, day in
             rates = newRates
             ratesRequestedFor = day
@@ -67,9 +68,9 @@ struct ArchiveEntrySheet: View {
       Spacer(minLength: 0)
       HStack {
         Spacer()
-        Button("Отмена") { dismiss() }
+        Button { dismiss() } label: { Text(.archiveEntryFooterCancelButton) }
           .keyboardShortcut(.cancelAction)
-        Button("Добавить", action: save)
+        Button(action: save) { Text(.archiveEntryFooterAddButton) }
           .keyboardShortcut(.defaultAction)
           .disabled(isDayTaken || !hasAmounts || !hasRates)
       }
@@ -78,8 +79,8 @@ struct ArchiveEntrySheet: View {
     .frame(minWidth: 600, idealWidth: 640, maxWidth: .infinity, minHeight: 380, idealHeight: 400, maxHeight: .infinity)
   }
 
-  private func amountField(_ title: String, _ value: Binding<Double?>) -> some View {
-    TextField(title, value: value, format: Fmt.moneyInput, prompt: Text("0"))
+  private func amountField(_ title: LocalizedStringResource, _ value: Binding<Double?>) -> some View {
+    TextField(String(localized: title), value: value, format: Fmt.moneyInput, prompt: Text(verbatim: "0"))
       .labelsHidden()
       .multilineTextAlignment(.trailing)
       .monospacedDigit()

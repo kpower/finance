@@ -32,30 +32,31 @@ private struct BackupSupport: ViewModifier {
         contentType: .json,
         defaultFilename: defaultFilename
       ) { result in
-        if case .failure(let error) = result {
-          message = Message(title: "Не удалось сохранить бэкап", text: error.localizedDescription)
+        if case .failure = result {
+          message = Message(
+            title: String(localized: .backupExportAlertWriteFailedTitle),
+            text: String(localized: .backupExportAlertWriteFailedMessage)
+          )
         }
       }
       .fileImporter(isPresented: $isImporting, allowedContentTypes: [.json]) { result in
         load(result)
       }
       .confirmationDialog(
-        "Заменить все данные содержимым бэкапа?",
+        Text(.backupRestoreDialogTitle),
         isPresented: Binding(get: { pendingRestore != nil }, set: { if !$0 { pendingRestore = nil } }),
         titleVisibility: .visible,
         presenting: pendingRestore
       ) { backup in
-        Button("Заменить", role: .destructive) { restore(backup) }
-        Button("Отмена", role: .cancel) {}
+        Button(role: .destructive) { restore(backup) } label: { Text(.backupRestoreDialogReplaceButton) }
+        Button(role: .cancel) {} label: { Text(.backupRestoreDialogCancelButton) }
       } message: { backup in
-        Text("""
-          Бэкап от \(Fmt.date(backup.exportedAt)): вкладов — \(backup.deposits.count), \
-          курсов — \(backup.rates.count), записей истории — \(backup.snapshots.count). \
-          Текущие данные будут удалены.
-          """)
+        Text(.backupRestoreDialogMessage(
+          Fmt.date(backup.exportedAt), backup.deposits.count, backup.rates.count, backup.snapshots.count
+        ))
       }
       .alert(item: $message) { message in
-        Alert(title: Text(message.title), message: Text(message.text), dismissButton: .default(Text("OK")))
+        Alert(title: Text(message.title), message: Text(message.text), dismissButton: .default(Text(.backupAlertOkButton)))
       }
   }
 
@@ -67,7 +68,10 @@ private struct BackupSupport: ViewModifier {
     do {
       exportDocument = BackupDocument(data: try BackupService.encode(BackupService.makeBackup(from: context)))
     } catch {
-      message = Message(title: "Не удалось сохранить бэкап", text: error.localizedDescription)
+      message = Message(
+        title: String(localized: .backupExportAlertCreateFailedTitle),
+        text: String(localized: .backupExportAlertCreateFailedMessage)
+      )
     }
   }
 
@@ -77,17 +81,31 @@ private struct BackupSupport: ViewModifier {
       let accessing = url.startAccessingSecurityScopedResource()
       defer { if accessing { url.stopAccessingSecurityScopedResource() } }
       pendingRestore = try BackupService.decode(Data(contentsOf: url))
+    } catch BackupError.unsupportedVersion(let version) {
+      message = Message(
+        title: String(localized: .backupImportAlertOpenFailedTitle),
+        text: String(localized: .backupImportAlertUnsupportedVersionMessage(version))
+      )
     } catch {
-      message = Message(title: "Не удалось загрузить бэкап", text: error.localizedDescription)
+      message = Message(
+        title: String(localized: .backupImportAlertOpenFailedTitle),
+        text: String(localized: .backupImportAlertUnreadableMessage)
+      )
     }
   }
 
   private func restore(_ backup: Backup) {
     do {
       try BackupService.restore(backup, into: context)
-      message = Message(title: "Бэкап загружен", text: "Данные восстановлены из бэкапа от \(Fmt.date(backup.exportedAt)).")
+      message = Message(
+        title: String(localized: .backupImportAlertRestoredTitle),
+        text: String(localized: .backupImportAlertRestoredMessage(Fmt.date(backup.exportedAt)))
+      )
     } catch {
-      message = Message(title: "Не удалось загрузить бэкап", text: error.localizedDescription)
+      message = Message(
+        title: String(localized: .backupImportAlertRestoreFailedTitle),
+        text: String(localized: .backupImportAlertRestoreFailedMessage)
+      )
     }
   }
 }

@@ -10,27 +10,29 @@ struct OptionalDateField: View {
     if let current = date {
       HStack(spacing: 4) {
         DatePicker(
-          "",
           selection: Binding(get: { current }, set: { date = $0 }),
           displayedComponents: .date
-        )
+        ) { EmptyView() }
         .datePickerStyle(.field)
         .labelsHidden()
-        .environment(\.locale, Fmt.ruLocale)
-        Button("Очистить", systemImage: "xmark.circle.fill") { date = nil }
-          .labelStyle(.iconOnly)
-          .buttonStyle(.borderless)
-          .foregroundStyle(.tertiary)
-          .help("Очистить дату")
+        Button { date = nil } label: {
+          Label { Text(.optionalDateFieldClearButton) } icon: { Image(systemName: "xmark.circle.fill") }
+        }
+        .labelStyle(.iconOnly)
+        .buttonStyle(.borderless)
+        .foregroundStyle(.tertiary)
+        .help(Text(.optionalDateFieldClearHelp))
       }
     } else {
       HStack(spacing: 4) {
-        Text("—").foregroundStyle(.tertiary)
-        Button("Указать дату", systemImage: "plus.circle") { date = defaultDate }
-          .labelStyle(.iconOnly)
-          .buttonStyle(.borderless)
-          .foregroundStyle(.secondary)
-          .help("Указать дату")
+        Text(verbatim: "—").foregroundStyle(.tertiary)
+        Button { date = defaultDate } label: {
+          Label { Text(.optionalDateFieldSetButton) } icon: { Image(systemName: "plus.circle") }
+        }
+        .labelStyle(.iconOnly)
+        .buttonStyle(.borderless)
+        .foregroundStyle(.secondary)
+        .help(Text(.optionalDateFieldSetHelp))
       }
     }
   }
