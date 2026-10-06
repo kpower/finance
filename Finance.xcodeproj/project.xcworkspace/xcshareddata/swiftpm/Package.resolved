@@ -1,0 +1,33 @@
+{
+  "originHash" : "72299b48435334a3d9aee9ff975d7fcd4a4df657982ef57ee72203a94bd6d64c",
+  "pins" : [
+    {
+      "identity" : "prm-scripting-core",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/kpower/prm-scripting-core",
+      "state" : {
+        "revision" : "6fa9778235196866c3e018ca881cdfd8dba51678",
+        "version" : "0.3.0"
+      }
+    },
+    {
+      "identity" : "swift-argument-parser",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-argument-parser.git",
+      "state" : {
+        "revision" : "6a52f3251125d74daf04fcbd5e6f08a75d074382",
+        "version" : "1.8.2"
+      }
+    },
+    {
+      "identity" : "swift-log",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-log",
+      "state" : {
+        "revision" : "9c6fb14227f55d8f711ce3847dc2f419fb0ecacb",
+        "version" : "1.15.1"
+      }
+    }
+  ],
+  "version" : 3
+}
