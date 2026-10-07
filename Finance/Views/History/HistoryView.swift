@@ -143,6 +143,11 @@ struct HistoryView: View {
           .width(min: 80, ideal: 95)
           .alignment(.trailing)
           .customizationID("dEurDay")
+        TableColumn(Text(.historyTableCommentColumn)) { (r: HistoryRow) in
+          Text(r.comment).lineLimit(1).help(Text(verbatim: r.comment))
+        }
+          .width(min: 120, ideal: 260)
+          .customizationID("comment")
       }
     } rows: {
       ForEach(rows)

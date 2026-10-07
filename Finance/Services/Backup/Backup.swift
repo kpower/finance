@@ -45,6 +45,8 @@ struct Backup: Codable {
     var summaryRUB: Double
     var summaryUSD: Double
     var summaryEUR: Double
+    /// Omitted when empty; absent in files written before comments existed.
+    var comment: String?
     var createdAt: Date
   }
 }
