@@ -47,7 +47,8 @@ struct SnapshotDetailView: View {
         needsAttention: snapshot.ratesNeedAttention,
         onChange: snapshot.setRates
       )
-      Spacer()
+      TextField(text: $snapshot.comment) { Text(.historyDetailCommentLabel) }
+        .frame(minWidth: 200, maxWidth: .infinity)
     }
     .padding(.horizontal, 16)
     .padding(.vertical, 10)

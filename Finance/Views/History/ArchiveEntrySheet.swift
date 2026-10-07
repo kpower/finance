@@ -10,6 +10,7 @@ struct ArchiveEntrySheet: View {
   @State private var rub: Double?
   @State private var usd: Double?
   @State private var eur: Double?
+  @State private var comment = ""
   @State private var rates = Rates(usd: 0, eur: 0, date: nil, source: RateSource.manual)
   @State private var ratesRequestedFor: Date?
 
@@ -63,6 +64,12 @@ struct ArchiveEntrySheet: View {
             ratesRequestedFor = day
           }
         }
+        Divider().gridCellUnsizedAxes(.horizontal)
+        GridRow {
+          Text(.archiveEntryFormCommentLabel)
+          TextField(text: $comment) { Text(.archiveEntryFormCommentLabel) }
+            .labelsHidden()
+        }
       }
 
       Spacer(minLength: 0)
@@ -76,7 +83,7 @@ struct ArchiveEntrySheet: View {
       }
     }
     .padding(20)
-    .frame(minWidth: 600, idealWidth: 640, maxWidth: .infinity, minHeight: 380, idealHeight: 400, maxHeight: .infinity)
+    .frame(minWidth: 600, idealWidth: 640, maxWidth: .infinity, minHeight: 420, idealHeight: 440, maxHeight: .infinity)
   }
 
   private func amountField(_ title: LocalizedStringResource, _ value: Binding<Double?>) -> some View {
@@ -90,6 +97,7 @@ struct ArchiveEntrySheet: View {
   private func save() {
     let snapshot = Snapshot(date: date, rates: rates, rub: rub ?? 0, usd: usd ?? 0, eur: eur ?? 0)
     snapshot.setRates(rates, requestedFor: ratesRequestedFor)
+    snapshot.comment = comment.trimmingCharacters(in: .whitespacesAndNewlines)
     context.insert(snapshot)
     try? context.save()
     dismiss()

@@ -29,6 +29,8 @@ struct HistoryRow: Identifiable {
   var deltaRUB: HistoryDelta?
   var deltaUSD: HistoryDelta?
   var deltaEUR: HistoryDelta?
+
+  var comment: String
 }
 
 /// Change of a total versus the previous snapshot.

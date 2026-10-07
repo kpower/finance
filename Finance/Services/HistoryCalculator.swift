@@ -31,7 +31,8 @@ enum HistoryCalculator {
       sumEUR: s.sumEUR, eurRate: s.eurRate, eurInRUB: eurInRUB,
       totalRUB: total,
       totalUSD: s.usdRate == 0 ? nil : total / s.usdRate,
-      totalEUR: s.eurRate == 0 ? nil : total / s.eurRate
+      totalEUR: s.eurRate == 0 ? nil : total / s.eurRate,
+      comment: s.comment
     )
   }
 

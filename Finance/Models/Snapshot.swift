@@ -27,6 +27,8 @@ final class Snapshot {
   var summaryRUB: Double = 0
   var summaryUSD: Double = 0
   var summaryEUR: Double = 0
+  /// Free-form note, e.g. what explains the change since the previous entry.
+  var comment: String = ""
   var createdAt: Date = Date.now
 
   init(date: Date, rates: Rates, items: [DepositRecord], createdAt: Date = .now) {

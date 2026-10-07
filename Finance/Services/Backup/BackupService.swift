@@ -26,6 +26,7 @@ enum BackupService {
           date: $0.date, kind: $0.kind, usdRate: $0.usdRate, eurRate: $0.eurRate,
           ratesSource: $0.ratesSource, ratesRequestedFor: $0.ratesRequestedFor, items: $0.items,
           summaryRUB: $0.summaryRUB, summaryUSD: $0.summaryUSD, summaryEUR: $0.summaryEUR,
+          comment: $0.comment.isEmpty ? nil : $0.comment,
           createdAt: $0.createdAt
         )
       }
@@ -75,6 +76,7 @@ enum BackupService {
       snapshot.summaryRUB = entry.summaryRUB
       snapshot.summaryUSD = entry.summaryUSD
       snapshot.summaryEUR = entry.summaryEUR
+      snapshot.comment = entry.comment ?? ""
       snapshot.ratesRequestedFor = entry.ratesRequestedFor
       context.insert(snapshot)
     }

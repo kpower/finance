@@ -35,6 +35,23 @@
         }
       }
     },
+    "archive_entry.form.comment_label": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comment"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Комментарий"
+          }
+        }
+      }
+    },
     "archive_entry.form.date_label": {
       "extractionState": "manual",
       "localizations": {
@@ -1208,6 +1225,23 @@
         }
       }
     },
+    "history.detail.comment_label": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comment"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Комментарий"
+          }
+        }
+      }
+    },
     "history.detail.date_conflict_alert.message": {
       "extractionState": "manual",
       "localizations": {
@@ -1612,6 +1646,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Архивная запись: только суммы, без распределения по вкладам"
+          }
+        }
+      }
+    },
+    "history.table.comment_column": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comment"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Комментарий"
           }
         }
       }
