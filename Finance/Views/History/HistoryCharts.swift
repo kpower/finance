@@ -97,7 +97,10 @@ private struct TotalChart: View {
     VStack(alignment: .leading, spacing: 2) {
       Text(Fmt.date(point.row.date)).font(.caption).foregroundStyle(.secondary)
       Text(Fmt.money(point.value)).font(.callout.weight(.semibold)).monospacedDigit()
-      if point.row.isSummaryOnly {
+      switch point.row.kind {
+      case .detailed:
+        EmptyView()
+      case .summaryOnly:
         Text(.historyChartArchiveEntryLabel).font(.caption2).foregroundStyle(.secondary)
       }
     }

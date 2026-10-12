@@ -11,44 +11,62 @@ final class Snapshot {
     case summaryOnly
   }
 
-  /// Start of the day the snapshot belongs to. One snapshot per day.
-  var date: Date = Date.now
-  var usdRate: Double = 0
-  var eurRate: Double = 0
-  /// `RateSource` identifier of where the rates came from.
-  var ratesSource: String = ""
-  /// Day the rates were obtained for; nil when typed by hand.
-  /// Differs from `date` after the snapshot's date has been changed.
-  var ratesRequestedFor: Date?
-  var items: [DepositRecord] = []
+  /// Start of the day the snapshot belongs to: its key, one snapshot per day.
+  @Attribute(.unique) var date: Date
+  var usdRate: Double
+  var eurRate: Double
+  /// Where the rates came from.
+  var ratesSource: RateSource
+  /// Day the rates are for (`Rates.date`). Differs from `date` after the snapshot's date has been changed.
+  var ratesRequestedFor: Date
+  /// Per-deposit details of a `.detailed` snapshot; empty for `.summaryOnly`.
+  var items: [DepositRecord]
   /// Stored as a raw value so existing stores migrate without a custom schema.
-  private var kindRaw: String = Kind.detailed.rawValue
+  private var kindRaw: String
   /// Totals of a `.summaryOnly` snapshot; unused for `.detailed`.
-  var summaryRUB: Double = 0
-  var summaryUSD: Double = 0
-  var summaryEUR: Double = 0
+  var summaryRUB: Double
+  var summaryUSD: Double
+  var summaryEUR: Double
   /// Free-form note, e.g. what explains the change since the previous entry.
-  var comment: String = ""
-  var createdAt: Date = Date.now
+  var comment: String
 
-  init(date: Date, rates: Rates, items: [DepositRecord], createdAt: Date = .now) {
-    let day = Calendar.current.startOfDay(for: date)
-    self.date = day
+  init(
+    date: Date,
+    rates: Rates,
+    kind: Kind,
+    items: [DepositRecord],
+    summaryRUB: Double,
+    summaryUSD: Double,
+    summaryEUR: Double,
+    comment: String
+  ) {
+    self.date = Calendar.current.startOfDay(for: date)
     self.usdRate = rates.usd
     self.eurRate = rates.eur
     self.ratesSource = rates.source
-    self.ratesRequestedFor = RateSource.isManual(rates.source) ? nil : day
+    self.ratesRequestedFor = Calendar.current.startOfDay(for: rates.date)
     self.items = items
-    self.createdAt = createdAt
+    self.kindRaw = kind.rawValue
+    self.summaryRUB = summaryRUB
+    self.summaryUSD = summaryUSD
+    self.summaryEUR = summaryEUR
+    self.comment = comment
+  }
+
+  /// Snapshot of the deposits table, with per-deposit details.
+  convenience init(date: Date, rates: Rates, items: [DepositRecord]) {
+    self.init(
+      date: date, rates: rates, kind: .detailed, items: items,
+      summaryRUB: 0, summaryUSD: 0, summaryEUR: 0, comment: ""
+    )
   }
 
   /// Archive entry with only currency totals.
-  convenience init(date: Date, rates: Rates, rub: Double, usd: Double, eur: Double, createdAt: Date = .now) {
-    self.init(date: date, rates: rates, items: [], createdAt: createdAt)
-    kind = .summaryOnly
-    summaryRUB = rub
-    summaryUSD = usd
-    summaryEUR = eur
+  convenience init(date: Date, rates: Rates, rub: Double, usd: Double, eur: Double, comment: String) {
+    self.init(
+      date: date, rates: rates, kind: .summaryOnly, items: [],
+      summaryRUB: rub, summaryUSD: usd, summaryEUR: eur, comment: comment
+    )
   }
 
   var kind: Kind {
@@ -56,41 +74,46 @@ final class Snapshot {
     set { kindRaw = newValue.rawValue }
   }
 
-  var rates: Rates { Rates(usd: usdRate, eur: eurRate, date: date, source: ratesSource) }
+  var rates: Rates {
+    get { Rates(usd: usdRate, eur: eurRate, date: ratesRequestedFor, source: ratesSource) }
+    set {
+      usdRate = newValue.usd
+      eurRate = newValue.eur
+      ratesSource = newValue.source
+      ratesRequestedFor = Calendar.current.startOfDay(for: newValue.date)
+    }
+  }
 
   // MARK: Totals
 
-  var sumRUB: Double { kind == .summaryOnly ? summaryRUB : items.reduce(0) { $0 + ($1.amountRUB ?? 0) } }
-  var sumUSD: Double { kind == .summaryOnly ? summaryUSD : items.reduce(0) { $0 + ($1.amountUSD ?? 0) } }
-  var sumEUR: Double { kind == .summaryOnly ? summaryEUR : items.reduce(0) { $0 + ($1.amountEUR ?? 0) } }
+  var sumRUB: Double {
+    switch kind {
+    case .summaryOnly: summaryRUB
+    case .detailed: items.reduce(0) { $0 + ($1.amountRUB ?? 0) }
+    }
+  }
+
+  var sumUSD: Double {
+    switch kind {
+    case .summaryOnly: summaryUSD
+    case .detailed: items.reduce(0) { $0 + ($1.amountUSD ?? 0) }
+    }
+  }
+
+  var sumEUR: Double {
+    switch kind {
+    case .summaryOnly: summaryEUR
+    case .detailed: items.reduce(0) { $0 + ($1.amountEUR ?? 0) }
+    }
+  }
+
   var totalRUB: Double { sumRUB + sumUSD * usdRate + sumEUR * eurRate }
 
-  // MARK: Rates state
-
   /// Rates were typed by hand or obtained for another day than the snapshot's.
-  var ratesNeedAttention: Bool {
-    Self.ratesNeedAttention(source: ratesSource, requestedFor: ratesRequestedFor, date: date)
-  }
+  var ratesNeedAttention: Bool { rates.needAttention(on: date) }
 
-  static func ratesNeedAttention(source: String, requestedFor: Date?, date: Date) -> Bool {
-    if RateSource.isManual(source) { return true }
-    // Entries saved before rate tracking existed: origin unknown, nothing to flag.
-    guard let requestedFor else { return false }
-    return !Calendar.current.isDate(requestedFor, inSameDayAs: date)
-  }
-
-  /// Moves the snapshot to another day, keeping track of which day its rates belong to.
+  /// Moves the snapshot to another day; its rates stay the ones of the day they were obtained for.
   func move(to newDate: Date) {
-    if ratesRequestedFor == nil, !RateSource.isManual(ratesSource) {
-      ratesRequestedFor = date
-    }
     date = Calendar.current.startOfDay(for: newDate)
-  }
-
-  func setRates(_ rates: Rates, requestedFor day: Date?) {
-    usdRate = rates.usd
-    eurRate = rates.eur
-    ratesSource = rates.source
-    ratesRequestedFor = day.map { Calendar.current.startOfDay(for: $0) }
   }
 }

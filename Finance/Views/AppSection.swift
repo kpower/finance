@@ -4,7 +4,6 @@ import Foundation
 enum AppSection: String, CaseIterable, Identifiable, Hashable {
   case deposits
   case history
-  case rates
 
   var id: Self { self }
 
@@ -12,7 +11,6 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable {
     switch self {
     case .deposits: .sidebarSectionDepositsTitle
     case .history: .sidebarSectionHistoryTitle
-    case .rates: .sidebarSectionRatesTitle
     }
   }
 
@@ -20,7 +18,6 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable {
     switch self {
     case .deposits: "banknote"
     case .history: "clock.arrow.circlepath"
-    case .rates: "dollarsign.arrow.circlepath"
     }
   }
 }

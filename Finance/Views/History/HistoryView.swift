@@ -68,7 +68,10 @@ struct HistoryView: View {
         TableColumn(Text(.historyTableDateColumn)) { (row: HistoryRow) in
           HStack(spacing: 4) {
             Text(Fmt.date(row.date)).monospacedDigit()
-            if row.isSummaryOnly {
+            switch row.kind {
+            case .detailed:
+              EmptyView()
+            case .summaryOnly:
               Image(systemName: "archivebox")
                 .foregroundStyle(.secondary)
                 .help(Text(.historyTableArchiveEntryHelp))

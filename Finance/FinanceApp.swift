@@ -13,5 +13,8 @@ struct FinanceApp: App {
     .commands {
       BackupCommands()
     }
+    Settings {
+      SettingsView()
+    }
   }
 }

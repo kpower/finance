@@ -36,11 +36,6 @@ enum Fmt {
     value.map(date) ?? ""
   }
 
-  /// 05.10.2026, 14:30
-  static func dateTime(_ value: Date) -> String {
-    value.formatted(.dateTime.day(.twoDigits).month(.twoDigits).year().hour().minute())
-  }
-
   /// Input format for editable money fields (no forced fraction digits).
   static let moneyInput = FloatingPointFormatStyle<Double>.number
 }

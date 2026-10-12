@@ -1,18 +1,22 @@
 import Foundation
 import SwiftUI
 
-/// Totals per currency and grand total in rubles, shown under the deposits table.
+/// Totals per currency and grand total in rubles, shown under the deposits table,
+/// with the rates used for the total editable in place.
 struct DepositsSummaryBar: View {
   let deposits: [Deposit]
-  let rates: Rates
+  /// Nil when not entered yet.
+  let rates: Rates?
+  let onRatesChange: (Rates) -> Void
 
   var body: some View {
     let rub = deposits.reduce(0) { $0 + ($1.amountRUB ?? 0) }
     let usd = deposits.reduce(0) { $0 + ($1.amountUSD ?? 0) }
     let eur = deposits.reduce(0) { $0 + ($1.amountEUR ?? 0) }
-    let missing = (usd != 0 && rates.usd <= 0) || (eur != 0 && rates.eur <= 0)
+    // Without rates the total is known only when there is nothing to convert.
+    let totalRUB = rates.map { rub + usd * $0.usd + eur * $0.eur } ?? (usd == 0 && eur == 0 ? rub : nil)
 
-    VStack(alignment: .trailing, spacing: 4) {
+    VStack(alignment: .trailing, spacing: 6) {
       HStack(spacing: 20) {
         total("₽", Fmt.money(rub))
         total("$", Fmt.money(usd))
@@ -20,16 +24,14 @@ struct DepositsSummaryBar: View {
         Divider().frame(height: 16)
         HStack(spacing: 6) {
           Text(.depositsSummaryTotalRubLabel).foregroundStyle(.secondary)
-          if missing {
-            Text(.depositsSummaryNoRateLabel).foregroundStyle(.secondary)
+          if let totalRUB {
+            Text(Fmt.money(totalRUB)).bold()
           } else {
-            Text(Fmt.money(rub + usd * rates.usd + eur * rates.eur)).bold()
+            Text(.depositsSummaryNoRateLabel).foregroundStyle(.secondary)
           }
         }
       }
-      Text(ratesLine)
-        .font(.caption)
-        .foregroundStyle(.secondary)
+      RatesEditor(date: .now, rates: rates, onChange: onRatesChange)
     }
     .monospacedDigit()
     .frame(maxWidth: .infinity, alignment: .trailing)
@@ -43,13 +45,5 @@ struct DepositsSummaryBar: View {
       Text(symbol).foregroundStyle(.secondary)
       Text(value)
     }
-  }
-
-  private var ratesLine: LocalizedStringResource {
-    guard rates.usd > 0 || rates.eur > 0 else { return .depositsSummaryRatesMissingLabel }
-    if let date = rates.date {
-      return .depositsSummaryRatesOnDateLabel(Fmt.rate(rates.usd), Fmt.rate(rates.eur), Fmt.date(date))
-    }
-    return .depositsSummaryRatesLabel(Fmt.rate(rates.usd), Fmt.rate(rates.eur))
   }
 }

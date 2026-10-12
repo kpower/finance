@@ -7,7 +7,6 @@ enum BackupService {
 
   static func makeBackup(from context: ModelContext) throws -> Backup {
     let deposits = try context.fetch(FetchDescriptor<Deposit>(sortBy: [SortDescriptor(\.createdAt)]))
-    let rates = try context.fetch(FetchDescriptor<RateRecord>(sortBy: [SortDescriptor(\.createdAt)]))
     let snapshots = try context.fetch(FetchDescriptor<Snapshot>(sortBy: [SortDescriptor(\.date)]))
     return Backup(
       deposits: deposits.map {
@@ -18,16 +17,12 @@ enum BackupService {
           openDate: $0.openDate, closeDate: $0.closeDate, createdAt: $0.createdAt
         )
       },
-      rates: rates.map {
-        Backup.RateEntry(rateDate: $0.rateDate, usd: $0.usd, eur: $0.eur, source: $0.source, createdAt: $0.createdAt)
-      },
       snapshots: snapshots.map {
         Backup.SnapshotEntry(
           date: $0.date, kind: $0.kind, usdRate: $0.usdRate, eurRate: $0.eurRate,
           ratesSource: $0.ratesSource, ratesRequestedFor: $0.ratesRequestedFor, items: $0.items,
           summaryRUB: $0.summaryRUB, summaryUSD: $0.summaryUSD, summaryEUR: $0.summaryEUR,
-          comment: $0.comment.isEmpty ? nil : $0.comment,
-          createdAt: $0.createdAt
+          comment: $0.comment.isEmpty ? nil : $0.comment
         )
       }
     )
@@ -53,7 +48,6 @@ enum BackupService {
   /// Replaces everything in the store with the backup's contents.
   static func restore(_ backup: Backup, into context: ModelContext) throws {
     try context.fetch(FetchDescriptor<Deposit>()).forEach(context.delete)
-    try context.fetch(FetchDescriptor<RateRecord>()).forEach(context.delete)
     try context.fetch(FetchDescriptor<Snapshot>()).forEach(context.delete)
 
     for entry in backup.deposits {
@@ -64,21 +58,14 @@ enum BackupService {
         openDate: entry.openDate, closeDate: entry.closeDate, createdAt: entry.createdAt
       ))
     }
-    for entry in backup.rates {
-      context.insert(RateRecord(
-        rateDate: entry.rateDate, usd: entry.usd, eur: entry.eur, source: entry.source, createdAt: entry.createdAt
-      ))
-    }
     for entry in backup.snapshots {
-      let rates = Rates(usd: entry.usdRate, eur: entry.eurRate, date: entry.date, source: entry.ratesSource)
-      let snapshot = Snapshot(date: entry.date, rates: rates, items: entry.items, createdAt: entry.createdAt)
-      snapshot.kind = entry.kind
-      snapshot.summaryRUB = entry.summaryRUB
-      snapshot.summaryUSD = entry.summaryUSD
-      snapshot.summaryEUR = entry.summaryEUR
-      snapshot.comment = entry.comment ?? ""
-      snapshot.ratesRequestedFor = entry.ratesRequestedFor
-      context.insert(snapshot)
+      let rates = Rates(
+        usd: entry.usdRate, eur: entry.eurRate, date: entry.ratesRequestedFor, source: entry.ratesSource)
+      context.insert(Snapshot(
+        date: entry.date, rates: rates, kind: entry.kind, items: entry.items,
+        summaryRUB: entry.summaryRUB, summaryUSD: entry.summaryUSD, summaryEUR: entry.summaryEUR,
+        comment: entry.comment ?? ""
+      ))
     }
     try context.save()
   }

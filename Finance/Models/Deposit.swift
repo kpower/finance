@@ -4,8 +4,8 @@ import SwiftData
 /// A live, editable deposit or account (Deposits section).
 @Model
 final class Deposit: DepositAmounts {
-  var name: String = ""
-  var bank: String = ""
+  var name: String
+  var bank: String
   var amountRUB: Double?
   var amountUSD: Double?
   var amountEUR: Double?
@@ -14,19 +14,19 @@ final class Deposit: DepositAmounts {
   var termMonths: Int?
   var openDate: Date?
   var closeDate: Date?
-  var createdAt: Date = Date.now
+  var createdAt: Date
 
   init(
-    name: String = "",
-    bank: String = "",
-    amountRUB: Double? = nil,
-    amountUSD: Double? = nil,
-    amountEUR: Double? = nil,
-    interestRate: Double? = nil,
-    termMonths: Int? = nil,
-    openDate: Date? = nil,
-    closeDate: Date? = nil,
-    createdAt: Date = .now
+    name: String,
+    bank: String,
+    amountRUB: Double?,
+    amountUSD: Double?,
+    amountEUR: Double?,
+    interestRate: Double?,
+    termMonths: Int?,
+    openDate: Date?,
+    closeDate: Date?,
+    createdAt: Date
   ) {
     self.name = name
     self.bank = bank
@@ -58,7 +58,8 @@ extension Deposit {
   static let closeDateExtraDays = 1
 
   /// Open date + term in months + `closeDateExtraDays`; nil if either input is missing.
-  static func expectedCloseDate(openDate: Date?, termMonths: Int?, calendar: Calendar = .current) -> Date? {
+  static func expectedCloseDate(openDate: Date?, termMonths: Int?) -> Date? {
+    let calendar = Calendar.current
     guard let openDate, let termMonths, termMonths > 0,
       let termEnd = calendar.date(byAdding: .month, value: termMonths, to: calendar.startOfDay(for: openDate))
     else { return nil }
