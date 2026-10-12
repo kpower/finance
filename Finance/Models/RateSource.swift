@@ -10,7 +10,6 @@ enum RateSource: String, Codable, CaseIterable, Identifiable, Sendable {
 
   var id: String { rawValue }
 
-  /// Localized name.
   var title: String {
     switch self {
     case .manual: String(localized: .rateSourceManualName)

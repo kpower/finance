@@ -87,7 +87,6 @@ extension Deposit {
     }
   }
 
-  /// Discards a manually entered close date in favor of the calculated one.
   func recalculateCloseDate() {
     closeDate = expectedCloseDate
   }

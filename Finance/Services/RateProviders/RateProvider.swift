@@ -3,7 +3,6 @@ import Foundation
 /// Source of USD/EUR rates (RUB per unit). Fetching is always user-initiated.
 /// Registered as a case of `RateSource`, which also holds its identifier and name.
 protocol RateProvider: Sendable {
-  /// Rates for the given day.
   func fetch(on date: Date) async throws -> Rates
 }
 

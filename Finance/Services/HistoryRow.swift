@@ -3,11 +3,9 @@ import SwiftData
 
 /// One line of the history table: totals of a snapshot and change vs. the previous one.
 struct HistoryRow: Identifiable {
-  /// Identifier of the snapshot this row was built from.
   let id: PersistentIdentifier
   let date: Date
   let kind: Snapshot.Kind
-  /// Rates were typed by hand or obtained for another day.
   let ratesNeedAttention: Bool
 
   let sumRUB: Double

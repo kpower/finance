@@ -15,7 +15,6 @@ final class Snapshot {
   @Attribute(.unique) var date: Date
   var usdRate: Double
   var eurRate: Double
-  /// Where the rates came from.
   var ratesSource: RateSource
   /// Day the rates are for (`Rates.date`). Differs from `date` after the snapshot's date has been changed.
   var ratesRequestedFor: Date
@@ -27,7 +26,6 @@ final class Snapshot {
   var summaryRUB: Double
   var summaryUSD: Double
   var summaryEUR: Double
-  /// Free-form note, e.g. what explains the change since the previous entry.
   var comment: String
 
   init(
@@ -53,7 +51,6 @@ final class Snapshot {
     self.comment = comment
   }
 
-  /// Snapshot of the deposits table, with per-deposit details.
   convenience init(date: Date, rates: Rates, items: [DepositRecord]) {
     self.init(
       date: date, rates: rates, kind: .detailed, items: items,
@@ -61,7 +58,6 @@ final class Snapshot {
     )
   }
 
-  /// Archive entry with only currency totals.
   convenience init(date: Date, rates: Rates, rub: Double, usd: Double, eur: Double, comment: String) {
     self.init(
       date: date, rates: rates, kind: .summaryOnly, items: [],
@@ -109,7 +105,6 @@ final class Snapshot {
 
   var totalRUB: Double { sumRUB + sumUSD * usdRate + sumEUR * eurRate }
 
-  /// Rates were typed by hand or obtained for another day than the snapshot's.
   var ratesNeedAttention: Bool { rates.needAttention(on: date) }
 
   /// Moves the snapshot to another day; its rates stay the ones of the day they were obtained for.

@@ -17,7 +17,6 @@ enum HistoryCalculator {
     let total = s.sumRUB + usdInRUB + eurInRUB
     let totalUSD = s.usdRate == 0 ? nil : total / s.usdRate
     let totalEUR = s.eurRate == 0 ? nil : total / s.eurRate
-    // Whole days since the previous snapshot; nil for the first one.
     let days = prev
       .flatMap { Calendar.current.dateComponents([.day], from: $0.date, to: s.date).day }
       .flatMap { $0 > 0 ? $0 : nil }

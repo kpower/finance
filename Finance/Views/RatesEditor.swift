@@ -6,7 +6,6 @@ import SwiftUI
 struct RatesEditor: View {
   /// Day the rates are for; fetching asks the source for this day.
   let date: Date
-  /// Rates in effect; nil when not entered yet.
   let rates: Rates?
   let onChange: (Rates) -> Void
 

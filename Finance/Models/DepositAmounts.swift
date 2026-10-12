@@ -8,7 +8,6 @@ protocol DepositAmounts {
 }
 
 extension DepositAmounts {
-  /// Whole deposit converted to rubles at the given rates.
   func totalRUB(at rates: Rates) -> Double {
     (amountRUB ?? 0) + (amountUSD ?? 0) * rates.usd + (amountEUR ?? 0) * rates.eur
   }

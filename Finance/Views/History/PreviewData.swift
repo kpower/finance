@@ -1,7 +1,6 @@
 import Foundation
 import SwiftData
 
-/// Sample snapshots for previews.
 enum PreviewData {
   static func seed(_ context: ModelContext) {
     let cal = Calendar.current

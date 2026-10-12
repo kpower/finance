@@ -16,13 +16,11 @@ extension RateSource {
 
   var isAvailable: Bool { makeProvider() != nil }
 
-  /// Sources that can fetch rates, in display order.
   static var available: [RateSource] { allCases.filter(\.isAvailable) }
 
   /// `self` if it can fetch, otherwise the first available provider (e.g. a retired one was selected).
   var availableOrFirst: RateSource { isAvailable ? self : Self.available[0] }
 
-  /// Rates for the given day.
   func fetch(on date: Date) async throws -> Rates {
     guard let provider = makeProvider() else { throw RateFetchError.providerUnavailable }
     return try await provider.fetch(on: date)

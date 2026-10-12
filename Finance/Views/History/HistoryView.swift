@@ -177,7 +177,6 @@ struct HistoryView: View {
   }
 }
 
-/// Table cell styles for the history table.
 private enum Cell {
   fileprivate static func money(_ value: Double?, bold: Bool = false) -> some View {
     Text(Fmt.money(value)).monospacedDigit().fontWeight(bold ? .semibold : .regular)

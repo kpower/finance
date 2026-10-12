@@ -25,7 +25,6 @@ private struct TotalChart: View {
   let points: [(row: HistoryRow, value: Double)]
   @Binding var hoveredDate: Date?
 
-  /// Point closest to the hovered date.
   private var hovered: (row: HistoryRow, value: Double)? {
     guard let hoveredDate else { return nil }
     return points.min {
