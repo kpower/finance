@@ -11,7 +11,6 @@ struct ArchiveEntrySheet: View {
   @State private var usd: Double?
   @State private var eur: Double?
   @State private var comment = ""
-  /// Nil until both rates are typed or fetched.
   @State private var rates: Rates?
 
   private var isDayTaken: Bool { SnapshotService.isDayTaken(date, excluding: nil, in: context) }

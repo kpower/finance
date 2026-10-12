@@ -5,7 +5,6 @@ import SwiftUI
 /// with the rates used for the total editable in place.
 struct DepositsSummaryBar: View {
   let deposits: [Deposit]
-  /// Nil when not entered yet.
   let rates: Rates?
   let onRatesChange: (Rates) -> Void
 

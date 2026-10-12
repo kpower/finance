@@ -296,7 +296,6 @@ private struct CloseDateCell: View {
 
 private struct TotalCell: View {
   let deposit: Deposit
-  /// Nil when not entered yet.
   let rates: Rates?
 
   /// Without rates the total is known only when there is nothing to convert.

@@ -31,9 +31,7 @@ struct Backup: Codable {
     let eurRate: Double
     let ratesSource: RateSource
     let ratesRequestedFor: Date
-    /// Per-deposit details of a `.detailed` snapshot.
     let items: [DepositRecord]
-    /// Totals of a `.summaryOnly` snapshot.
     let summaryRUB: Double
     let summaryUSD: Double
     let summaryEUR: Double
