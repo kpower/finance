@@ -21,9 +21,7 @@ struct SnapshotDetailView: View {
       Divider()
       footer
     }
-    .navigationTitle(snapshot.kind == .summaryOnly
-      ? Text(.historyDetailArchiveTitle(Fmt.date(snapshot.date)))
-      : Text(.historyDetailDepositsTitle(Fmt.date(snapshot.date))))
+    .navigationTitle(title)
     .alert(
       Text(.historyDetailDateConflictAlertTitle),
       isPresented: Binding(get: { dateConflict != nil }, set: { if !$0 { dateConflict = nil } })
@@ -34,24 +32,43 @@ struct SnapshotDetailView: View {
     }
   }
 
+  private var title: Text {
+    switch snapshot.kind {
+    case .detailed: Text(.historyDetailDepositsTitle(Fmt.date(snapshot.date)))
+    case .summaryOnly: Text(.historyDetailArchiveTitle(Fmt.date(snapshot.date)))
+    }
+  }
+
   // MARK: Header
 
+  /// One row when the window is wide enough, otherwise the comment moves to its own row.
   private var header: some View {
+    ViewThatFits(in: .horizontal) {
+      HStack(spacing: 20) {
+        dateAndRates
+        commentField.frame(minWidth: 200)
+      }
+      VStack(alignment: .leading, spacing: 8) {
+        dateAndRates
+        commentField
+      }
+    }
+    .padding(.horizontal, 16)
+    .padding(.vertical, 10)
+  }
+
+  private var dateAndRates: some View {
     HStack(spacing: 20) {
       DatePicker(selection: dateBinding, displayedComponents: .date) { Text(.historyDetailDateLabel) }
         .datePickerStyle(.field)
         .fixedSize()
-      SnapshotRatesEditor(
-        date: snapshot.date,
-        rates: rates,
-        needsAttention: snapshot.ratesNeedAttention,
-        onChange: snapshot.setRates
-      )
-      TextField(text: $snapshot.comment) { Text(.historyDetailCommentLabel) }
-        .frame(minWidth: 200, maxWidth: .infinity)
+      RatesEditor(date: snapshot.date, rates: rates) { snapshot.rates = $0 }
     }
-    .padding(.horizontal, 16)
-    .padding(.vertical, 10)
+  }
+
+  private var commentField: some View {
+    TextField(text: $snapshot.comment) { Text(.historyDetailCommentLabel) }
+      .frame(maxWidth: .infinity)
   }
 
   /// Moves the entry to another day unless that day already has an entry.
@@ -108,19 +125,19 @@ struct SnapshotDetailView: View {
   }
 
   private var summaryNote: some View {
-    VStack(spacing: 16) {
-      ContentUnavailableView {
-        Label { Text(.historyDetailSummaryOnlyTitle) } icon: { Image(systemName: "archivebox") }
-      } description: {
-        Text(.historyDetailSummaryOnlyDescription)
-      }
-      .fixedSize(horizontal: false, vertical: true)
+    ContentUnavailableView {
+      Label { Text(.historyDetailSummaryOnlyTitle) } icon: { Image(systemName: "archivebox") }
+    } description: {
+      Text(.historyDetailSummaryOnlyDescription)
+    } actions: {
       HStack(spacing: 20) {
         sumField("₽", value: $snapshot.summaryRUB)
         sumField("$", value: $snapshot.summaryUSD)
         sumField("€", value: $snapshot.summaryEUR)
       }
     }
+    // Fills the space between header and footer. Not `fixedSize`: measured at zero width its text
+    // wraps one letter per line, and that height pushed the header and footer out of the window.
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 

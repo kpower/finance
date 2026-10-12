@@ -11,15 +11,11 @@ struct ArchiveEntrySheet: View {
   @State private var usd: Double?
   @State private var eur: Double?
   @State private var comment = ""
-  @State private var rates = Rates(usd: 0, eur: 0, date: nil, source: RateSource.manual)
-  @State private var ratesRequestedFor: Date?
+  /// Nil until both rates are typed or fetched.
+  @State private var rates: Rates?
 
-  private var isDayTaken: Bool { SnapshotService.isDayTaken(date, in: context) }
+  private var isDayTaken: Bool { SnapshotService.isDayTaken(date, excluding: nil, in: context) }
   private var hasAmounts: Bool { (rub ?? 0) != 0 || (usd ?? 0) != 0 || (eur ?? 0) != 0 }
-  private var hasRates: Bool { rates.usd > 0 && rates.eur > 0 }
-  private var ratesNeedAttention: Bool {
-    Snapshot.ratesNeedAttention(source: rates.source, requestedFor: ratesRequestedFor, date: date)
-  }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 16) {
@@ -59,10 +55,7 @@ struct ArchiveEntrySheet: View {
         Divider().gridCellUnsizedAxes(.horizontal)
         GridRow {
           Text(.archiveEntryFormRatesLabel)
-          SnapshotRatesEditor(date: date, rates: rates, needsAttention: ratesNeedAttention) { newRates, day in
-            rates = newRates
-            ratesRequestedFor = day
-          }
+          RatesEditor(date: date, rates: rates) { rates = $0 }
         }
         Divider().gridCellUnsizedAxes(.horizontal)
         GridRow {
@@ -79,7 +72,7 @@ struct ArchiveEntrySheet: View {
           .keyboardShortcut(.cancelAction)
         Button(action: save) { Text(.archiveEntryFooterAddButton) }
           .keyboardShortcut(.defaultAction)
-          .disabled(isDayTaken || !hasAmounts || !hasRates)
+          .disabled(isDayTaken || !hasAmounts || rates == nil)
       }
     }
     .padding(20)
@@ -95,10 +88,12 @@ struct ArchiveEntrySheet: View {
   }
 
   private func save() {
-    let snapshot = Snapshot(date: date, rates: rates, rub: rub ?? 0, usd: usd ?? 0, eur: eur ?? 0)
-    snapshot.setRates(rates, requestedFor: ratesRequestedFor)
-    snapshot.comment = comment.trimmingCharacters(in: .whitespacesAndNewlines)
-    context.insert(snapshot)
+    guard let rates else { return }
+    context.insert(Snapshot(
+      date: date, rates: rates,
+      rub: rub ?? 0, usd: usd ?? 0, eur: eur ?? 0,
+      comment: comment.trimmingCharacters(in: .whitespacesAndNewlines)
+    ))
     try? context.save()
     dismiss()
   }

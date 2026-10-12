@@ -1,10 +1,10 @@
 import Foundation
 
 /// Source of USD/EUR rates (RUB per unit). Fetching is always user-initiated.
-/// Registered as a case of `RateProviders`, which also holds its identifier and name.
+/// Registered as a case of `RateSource`, which also holds its identifier and name.
 protocol RateProvider: Sendable {
-  /// Rates for the given date, or the latest published ones when `date` is nil.
-  func fetch(on date: Date?) async throws -> Rates
+  /// Rates for the given day.
+  func fetch(on date: Date) async throws -> Rates
 }
 
 // MARK: - Shared helpers
@@ -27,10 +27,10 @@ extension RateProvider {
   }
 
   /// Picks USD and EUR out of a "currency code → RUB per unit" map.
-  static func makeRates(_ values: [String: Double], date: Date?) throws -> Rates {
+  static func makeRates(_ values: [String: Double], date: Date, source: RateSource) throws -> Rates {
     guard let usd = values["USD"] else { throw RateFetchError.missingCurrency("USD") }
     guard let eur = values["EUR"] else { throw RateFetchError.missingCurrency("EUR") }
     guard usd > 0, eur > 0 else { throw RateFetchError.malformed }
-    return Rates(usd: usd, eur: eur, date: date)
+    return Rates(usd: usd, eur: eur, date: date, source: source)
   }
 }

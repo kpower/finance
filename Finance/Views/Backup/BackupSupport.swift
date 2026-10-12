@@ -52,7 +52,7 @@ private struct BackupSupport: ViewModifier {
         Button(role: .cancel) {} label: { Text(.backupRestoreDialogCancelButton) }
       } message: { backup in
         Text(.backupRestoreDialogMessage(
-          Fmt.date(backup.exportedAt), backup.deposits.count, backup.rates.count, backup.snapshots.count
+          Fmt.date(backup.exportedAt), backup.deposits.count, backup.snapshots.count
         ))
       }
       .alert(item: $message) { message in

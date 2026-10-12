@@ -3,15 +3,26 @@ import SwiftData
 import SwiftUI
 
 struct DepositsView: View {
+  /// Rates typed or fetched here and not saved to history yet. Owned by the window, so they survive
+  /// switching sections; they are stored only as part of a snapshot.
+  @Binding var draftRates: Rates?
+
   @Environment(\.modelContext) private var modelContext
   @Query(sort: \Deposit.createdAt) private var deposits: [Deposit]
-  @Query private var rateRecords: [RateRecord]
+  @Query(DepositsView.latestSnapshot) private var latestSnapshots: [Snapshot]
 
   @State private var selection = Set<Deposit.ID>()
   @State private var alert: DepositsAlert?
   @State private var confirmReplace = false
 
-  private var rates: Rates { rateRecords.current }
+  private static var latestSnapshot: FetchDescriptor<Snapshot> {
+    var descriptor = FetchDescriptor<Snapshot>(sortBy: [SortDescriptor(\.date, order: .reverse)])
+    descriptor.fetchLimit = 1
+    return descriptor
+  }
+
+  /// Rates set here; until then, the ones the latest history entry was saved with; nil when there are none.
+  private var rates: Rates? { draftRates ?? latestSnapshots.first?.rates }
 
   var body: some View {
     let rates = rates
@@ -29,7 +40,7 @@ struct DepositsView: View {
         VStack(spacing: 0) {
           table(rates: rates)
           Divider()
-          DepositsSummaryBar(deposits: deposits, rates: rates)
+          DepositsSummaryBar(deposits: deposits, rates: rates) { draftRates = $0 }
         }
       }
     }
@@ -70,7 +81,7 @@ struct DepositsView: View {
 
   // MARK: Table
 
-  private func table(rates: Rates) -> some View {
+  private func table(rates: Rates?) -> some View {
     let banks = Set(deposits.map { $0.bank.trimmingCharacters(in: .whitespaces) })
       .filter { !$0.isEmpty }
       .sorted { $0.localizedStandardCompare($1) == .orderedAscending }
@@ -143,7 +154,11 @@ struct DepositsView: View {
   // MARK: Actions
 
   private func addDeposit() {
-    let deposit = Deposit()
+    // A blank row for the user to fill in.
+    let deposit = Deposit(
+      name: "", bank: "", amountRUB: nil, amountUSD: nil, amountEUR: nil,
+      interestRate: nil, termMonths: nil, openDate: nil, closeDate: nil, createdAt: .now
+    )
     modelContext.insert(deposit)
     // Save so the identifier becomes permanent before it is used for selection.
     try? modelContext.save()
@@ -158,15 +173,14 @@ struct DepositsView: View {
   }
 
   private func requestSnapshot() {
-    let rates = rates
-    guard rates.usd > 0, rates.eur > 0 else {
+    guard rates != nil else {
       alert = DepositsAlert(
         title: String(localized: .depositsNoRatesAlertTitle),
         message: String(localized: .depositsNoRatesAlertMessage)
       )
       return
     }
-    if SnapshotService.isDayTaken(.now, in: modelContext) {
+    if SnapshotService.isDayTaken(.now, excluding: nil, in: modelContext) {
       confirmReplace = true
     } else {
       captureSnapshot()
@@ -174,8 +188,9 @@ struct DepositsView: View {
   }
 
   private func captureSnapshot() {
+    guard let rates else { return }
     do {
-      try SnapshotService.capture(deposits: deposits, rates: rates, in: modelContext)
+      try SnapshotService.capture(deposits: deposits, rates: rates, on: .now, in: modelContext)
       alert = DepositsAlert(
         title: String(localized: .depositsSavedAlertTitle),
         message: String(localized: .depositsSavedAlertMessage(Fmt.date(.now)))
@@ -281,20 +296,23 @@ private struct CloseDateCell: View {
 
 private struct TotalCell: View {
   let deposit: Deposit
-  let rates: Rates
+  /// Nil when not entered yet.
+  let rates: Rates?
 
-  private var missingRate: Bool {
-    (deposit.amountUSD != nil && rates.usd <= 0) || (deposit.amountEUR != nil && rates.eur <= 0)
+  /// Without rates the total is known only when there is nothing to convert.
+  private var total: Double? {
+    if let rates { return deposit.totalRUB(at: rates) }
+    return deposit.amountUSD == nil && deposit.amountEUR == nil ? deposit.amountRUB ?? 0 : nil
   }
 
   var body: some View {
     Group {
-      if missingRate {
-        Text(.depositsTableNoRateLabel).foregroundStyle(.secondary)
-      } else if deposit.isEmpty {
+      if deposit.isEmpty {
         Text(verbatim: "—").foregroundStyle(.tertiary)
+      } else if let total {
+        Text(Fmt.money(total))
       } else {
-        Text(Fmt.money(deposit.totalRUB(at: rates)))
+        Text(.depositsTableNoRateLabel).foregroundStyle(.secondary)
       }
     }
     .monospacedDigit()
@@ -312,21 +330,21 @@ private struct TotalCell: View {
   let context = container.mainContext
   let now = Date.now
   context.insert(Deposit(
-    name: "Накопительный", bank: "Сбер", amountRUB: 1_500_000, interestRate: 16.5,
-    createdAt: now
+    name: "Накопительный", bank: "Сбер", amountRUB: 1_500_000, amountUSD: nil, amountEUR: nil,
+    interestRate: 16.5, termMonths: nil, openDate: nil, closeDate: nil, createdAt: now
   ))
   context.insert(Deposit(
-    name: "Валютный", bank: "ВТБ", amountUSD: 10_000, amountEUR: 2_500, interestRate: 3,
-    termMonths: 12, openDate: now, createdAt: now.addingTimeInterval(1)
+    name: "Валютный", bank: "ВТБ", amountRUB: nil, amountUSD: 10_000, amountEUR: 2_500,
+    interestRate: 3, termMonths: 12, openDate: now, closeDate: nil, createdAt: now.addingTimeInterval(1)
   ))
   context.insert(Deposit(
-    name: "Смешанный", bank: "Т-Банк", amountRUB: 300_000, amountUSD: 1_000,
+    name: "Смешанный", bank: "Т-Банк", amountRUB: 300_000, amountUSD: 1_000, amountEUR: nil,
     interestRate: 18, termMonths: 6, openDate: now,
     closeDate: Deposit.expectedCloseDate(openDate: now, termMonths: 6),
     createdAt: now.addingTimeInterval(2)
   ))
-  context.insert(RateRecord(rateDate: now, usd: 92.5432, eur: 100.1234, source: RateProviders.cbrXML.rawValue))
-  return NavigationStack { DepositsView() }
+  let rates = Rates(usd: 92.5432, eur: 100.1234, date: now, source: .cbrXML)
+  return NavigationStack { DepositsView(draftRates: .constant(rates)) }
     .modelContainer(container)
     .frame(width: 1200, height: 500)
 }

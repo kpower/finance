@@ -3,6 +3,7 @@ import SwiftUI
 
 struct MainView: View {
   @SceneStorage("selectedSection") private var selection: AppSection = .deposits
+  @State private var draftRates: Rates?
 
   var body: some View {
     NavigationSplitView {
@@ -17,9 +18,8 @@ struct MainView: View {
       .navigationSplitViewColumnWidth(min: 160, ideal: 190)
     } detail: {
       switch selection {
-      case .deposits: DepositsView()
+      case .deposits: DepositsView(draftRates: $draftRates)
       case .history: HistoryView()
-      case .rates: RatesView()
       }
     }
   }

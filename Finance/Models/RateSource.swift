@@ -1,29 +1,21 @@
 import Foundation
 
-/// Stable identifiers stored in `RateRecord.source` and `Snapshot.ratesSource`.
-/// Stored values are never shown as is: `displayName` localizes them.
-enum RateSource {
-  static let manual = "manual"
+/// Where exchange rates came from: typed by hand or fetched from a provider.
+/// The raw value is stored in data, so a case is never renamed or removed: a retired
+/// provider keeps its case (for display of old records) and `makeProvider()` returns nil for it.
+enum RateSource: String, Codable, CaseIterable, Identifiable, Sendable {
+  case manual
+  case cbrXML = "cbr-xml"
+  case cbrJSON = "cbr-json"
 
-  /// Display names stored before sources became identifiers.
-  private static let legacy = [
-    "Вручную": manual,
-    "ЦБ РФ (XML)": RateProviders.cbrXML.rawValue,
-    "cbr-xml-daily.ru (JSON)": RateProviders.cbrJSON.rawValue,
-  ]
+  var id: String { rawValue }
 
-  private static func normalized(_ stored: String) -> String {
-    legacy[stored] ?? stored
-  }
-
-  static func isManual(_ stored: String) -> Bool {
-    normalized(stored) == manual
-  }
-
-  /// Localized name; unknown values are shown verbatim.
-  static func displayName(_ stored: String) -> String {
-    let id = normalized(stored)
-    if id == manual { return String(localized: .rateSourceManualName) }
-    return RateProviders(rawValue: id)?.title ?? stored
+  /// Localized name.
+  var title: String {
+    switch self {
+    case .manual: String(localized: .rateSourceManualName)
+    case .cbrXML: String(localized: .rateProviderCbrXmlTitle)
+    case .cbrJSON: String(localized: .rateProviderCbrJsonTitle)
+    }
   }
 }

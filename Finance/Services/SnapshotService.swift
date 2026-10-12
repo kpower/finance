@@ -8,7 +8,7 @@ enum SnapshotService {
   static func capture(
     deposits: [Deposit],
     rates: Rates,
-    on date: Date = .now,
+    on date: Date,
     in context: ModelContext
   ) throws -> Snapshot {
     try snapshots(on: date, in: context).forEach(context.delete)
@@ -30,8 +30,8 @@ enum SnapshotService {
     )
   }
 
-  /// Whether a snapshot other than `excluded` already occupies `date`'s day.
-  static func isDayTaken(_ date: Date, excluding excluded: Snapshot? = nil, in context: ModelContext) -> Bool {
+  /// Whether a snapshot other than `excluded` (nil: any snapshot) already occupies `date`'s day.
+  static func isDayTaken(_ date: Date, excluding excluded: Snapshot?, in context: ModelContext) -> Bool {
     let others = (try? snapshots(on: date, in: context)) ?? []
     return others.contains { $0.persistentModelID != excluded?.persistentModelID }
   }

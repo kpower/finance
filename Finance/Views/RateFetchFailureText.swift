@@ -1,6 +1,6 @@
 import Foundation
 
-/// User-facing text for a failed rate fetch, shared by the Rates section and history rate editing.
+/// User-facing text for a failed rate fetch, shared by every rates editor.
 enum RateFetchFailureText {
   static func text(for error: any Error) -> LocalizedStringResource {
     switch error {

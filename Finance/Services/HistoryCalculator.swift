@@ -3,46 +3,42 @@ import SwiftData
 
 enum HistoryCalculator {
   /// Rows in ascending date order, each compared with the previous snapshot.
-  static func rows(for snapshots: [Snapshot], calendar: Calendar = .current) -> [HistoryRow] {
+  static func rows(for snapshots: [Snapshot]) -> [HistoryRow] {
     var result: [HistoryRow] = []
     for snapshot in snapshots.sorted(by: { $0.date < $1.date }) {
-      var row = makeRow(snapshot)
-      if let prev = result.last,
-        let days = calendar.dateComponents([.day], from: prev.date, to: row.date).day, days > 0
-      {
-        row.days = days
-        row.deltaRUB = delta(from: prev.totalRUB, to: row.totalRUB, days: days)
-        row.deltaUSD = delta(from: prev.totalUSD, to: row.totalUSD, days: days)
-        row.deltaEUR = delta(from: prev.totalEUR, to: row.totalEUR, days: days)
-      }
-      result.append(row)
+      result.append(makeRow(snapshot, after: result.last))
     }
     return result
   }
 
-  private static func makeRow(_ s: Snapshot) -> HistoryRow {
+  private static func makeRow(_ s: Snapshot, after prev: HistoryRow?) -> HistoryRow {
     let usdInRUB = s.sumUSD * s.usdRate
     let eurInRUB = s.sumEUR * s.eurRate
     let total = s.sumRUB + usdInRUB + eurInRUB
+    let totalUSD = s.usdRate == 0 ? nil : total / s.usdRate
+    let totalEUR = s.eurRate == 0 ? nil : total / s.eurRate
+    // Whole days since the previous snapshot; nil for the first one.
+    let days = prev
+      .flatMap { Calendar.current.dateComponents([.day], from: $0.date, to: s.date).day }
+      .flatMap { $0 > 0 ? $0 : nil }
     return HistoryRow(
-      id: s.persistentModelID, date: s.date, isSummaryOnly: s.kind == .summaryOnly,
+      id: s.persistentModelID, date: s.date, kind: s.kind,
       ratesNeedAttention: s.ratesNeedAttention,
       sumRUB: s.sumRUB, sumUSD: s.sumUSD, usdRate: s.usdRate, usdInRUB: usdInRUB,
       sumEUR: s.sumEUR, eurRate: s.eurRate, eurInRUB: eurInRUB,
-      totalRUB: total,
-      totalUSD: s.usdRate == 0 ? nil : total / s.usdRate,
-      totalEUR: s.eurRate == 0 ? nil : total / s.eurRate,
+      totalRUB: total, totalUSD: totalUSD, totalEUR: totalEUR,
+      days: days,
+      deltaRUB: delta(from: prev?.totalRUB, to: total, days: days),
+      deltaUSD: delta(from: prev?.totalUSD, to: totalUSD, days: days),
+      deltaEUR: delta(from: prev?.totalEUR, to: totalEUR, days: days),
       comment: s.comment
     )
   }
 
-  private static func delta(from old: Double, to new: Double, days: Int) -> HistoryDelta {
+  /// Nil when there is nothing to compare with.
+  private static func delta(from old: Double?, to new: Double?, days: Int?) -> HistoryDelta? {
+    guard let old, let new, let days else { return nil }
     let d = new - old
     return HistoryDelta(value: d, perDay: d / Double(days))
-  }
-
-  private static func delta(from old: Double?, to new: Double?, days: Int) -> HistoryDelta? {
-    guard let old, let new else { return nil }
-    return delta(from: old, to: new, days: days)
   }
 }
