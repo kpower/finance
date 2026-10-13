@@ -1,14 +1,8 @@
 import Foundation
 
-/// Source of USD/EUR rates (RUB per unit). Fetching is always user-initiated.
-/// Registered as a case of `RateSource`, which also holds its identifier and name.
-protocol RateProvider: Sendable {
-  func fetch(on date: Date) async throws -> Rates
-}
-
-// MARK: - Shared helpers
-
-extension RateProvider {
+/// What the providers of USD/EUR rates (RUB per unit) share.
+/// A provider is a case of `RateSource`, which fetches from it.
+enum RateFetch {
   static func dateFormatter(_ format: String) -> DateFormatter {
     let f = DateFormatter()
     f.locale = Locale(identifier: "en_US_POSIX")

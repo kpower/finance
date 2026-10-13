@@ -1,21 +1,21 @@
 import Foundation
 
 /// A thematic block of regular monthly expenses, e.g. a mortgage or a kindergarten.
-struct ExpenseBlock: Codable, Hashable, Identifiable, Sendable {
-  /// Kept when a new entry is started from the expenses of an older one.
-  var id = UUID()
+struct ExpenseBlock: Hashable, Identifiable, Sendable {
+  /// Tells the blocks of a screen apart and nothing else: it is not stored.
+  let id = UUID()
   var name: String
   var content: Content
 
-  enum Content: Codable, Hashable, Sendable {
+  enum Content: Hashable, Sendable {
     case single(amount: Double)
     /// Entered part by part, e.g. principal and interest of a mortgage.
     case split(parts: [ExpensePart])
   }
 }
 
-struct ExpensePart: Codable, Hashable, Identifiable, Sendable {
-  var id = UUID()
+struct ExpensePart: Hashable, Identifiable, Sendable {
+  let id = UUID()
   var name: String
   var amount: Double
 }

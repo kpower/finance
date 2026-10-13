@@ -3,10 +3,11 @@ import Foundation
 /// Backup file contents. Independent from the SwiftData models so the stored schema
 /// can evolve without breaking old files; bump `currentVersion` on incompatible changes.
 struct Backup: Codable {
-  /// 5: history entries, the Savings section and inflation. Version 4 files load too, they have only
-  /// history entries; so do version 3 files, their separate list of deposits is ignored.
+  /// 6: history entries, the Savings section and inflation. Version 5 files load too, the ids their
+  /// deposits, expenses and tax brackets carry are ignored; so do version 4 files, they have only
+  /// history entries, and version 3 files, their separate list of deposits is ignored.
   /// Older files do not load.
-  static let currentVersion = 5
+  static let currentVersion = 6
 
   var version = Backup.currentVersion
   var exportedAt = Date.now
@@ -18,10 +19,12 @@ struct Backup: Codable {
 
   struct SnapshotEntry: Codable {
     let date: Date
-    let kind: Snapshot.Kind
+    /// `SnapshotKind.storedID`.
+    let kind: String
     let usdRate: Double
     let eurRate: Double
-    let ratesSource: RateSource
+    /// `RateSource.storedID`.
+    let ratesSource: String
     let ratesRequestedFor: Date
     let items: [DepositRecord]
     let summaryRUB: Double
@@ -38,7 +41,7 @@ struct Backup: Codable {
     struct Entry: Codable {
       let date: Date
       let grossMonthly: Double
-      let expenses: [ExpenseBlock]
+      let expenses: [ExpenseRecord]
       /// Omitted when empty.
       let comment: String?
     }
@@ -47,7 +50,7 @@ struct Backup: Codable {
       let year: Int
       let lifeLevelUp: Double
       let baseTaxRate: Double
-      let higherTaxBrackets: [TaxBracket]
+      let higherTaxBrackets: [TaxBracketRecord]
     }
   }
 

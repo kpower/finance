@@ -1,15 +1,15 @@
 import Foundation
 
 /// https://www.cbr-xml-daily.ru — unofficial JSON mirror of the CBR daily rates.
-struct CBRJSONProvider: RateProvider {
-  func fetch(on date: Date) async throws -> Rates {
+enum CBRJSONProvider {
+  static func fetch(on date: Date) async throws -> Rates {
     // The archive has no file for weekends/holidays: step back up to a week.
-    let path = Self.dateFormatter("yyyy/MM/dd")
+    let path = RateFetch.dateFormatter("yyyy/MM/dd")
     var day = date
     for _ in 0...7 {
       let url = URL(string: "https://www.cbr-xml-daily.ru/archive/\(path.string(from: day))/daily_json.js")!
-      let (data, status) = try await Self.download(url)
-      if status == 200 { return try Self.makeRates(Self.parse(data), date: date, source: .cbrJSON) }
+      let (data, status) = try await RateFetch.download(url)
+      if status == 200 { return try RateFetch.makeRates(parse(data), date: date, source: .cbrJSON) }
       guard status == 404 else { throw RateFetchError.badStatus(status) }
       day = Calendar.current.date(byAdding: .day, value: -1, to: day) ?? day
     }

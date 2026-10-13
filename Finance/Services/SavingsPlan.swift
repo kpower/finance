@@ -1,5 +1,4 @@
 import Foundation
-import SwiftData
 
 /// The savings calculation for a set of entries and year data, done the way the spreadsheet
 /// this section replaces did it.
@@ -13,13 +12,13 @@ struct SavingsPlan {
   /// The amount to save is rounded up to a multiple of this.
   private static let roundingStep = 1000.0
 
-  private let baseline: SavingsInput
-  private let years: [Int: SavingsYear]
+  private let baseline: SavingsEntryValues
+  private let years: [Int: SavingsYearValues]
   /// Percent by year.
   private let inflation: [Int: Double]
 
   /// Nil without entries: there is no baseline to compare with.
-  init?(entries: [SavingsInput], years: [SavingsYear], inflation: [AnnualInflation]) {
+  init?(entries: [SavingsEntryValues], years: [SavingsYearValues], inflation: [AnnualInflationValues]) {
     guard let baseline = entries.min(by: { $0.date < $1.date }) else { return nil }
     self.baseline = baseline
     self.years = Dictionary(years.map { ($0.year, $0) }, uniquingKeysWith: { first, _ in first })
@@ -27,17 +26,19 @@ struct SavingsPlan {
   }
 
   /// Rows in ascending date order.
-  static func rows(for entries: [SavingsEntry], years: [SavingsYear], inflation: [AnnualInflation]) -> [SavingsRow] {
-    guard let plan = SavingsPlan(entries: entries.map(\.input), years: years, inflation: inflation) else { return [] }
-    return entries.sorted { $0.date < $1.date }.map { entry in
+  static func rows(
+    for entries: [Stored<SavingsEntryValues>], years: [SavingsYearValues], inflation: [AnnualInflationValues]
+  ) -> [SavingsRow] {
+    guard let plan = SavingsPlan(entries: entries.map(\.values), years: years, inflation: inflation) else { return [] }
+    return entries.sorted { $0.values.date < $1.values.date }.map { entry in
       SavingsRow(
-        id: entry.persistentModelID, date: entry.date, grossMonthly: entry.grossMonthly,
-        expenses: entry.expenses, comment: entry.comment, outcome: plan.outcome(for: entry.input)
+        id: entry.id, date: entry.values.date, grossMonthly: entry.values.grossMonthly,
+        expenses: entry.values.expenses, comment: entry.values.comment, outcome: plan.outcome(for: entry.values)
       )
     }
   }
 
-  func outcome(for entry: SavingsInput) -> SavingsOutcome {
+  func outcome(for entry: SavingsEntryValues) -> SavingsOutcome {
     do throws(SavingsGap) {
       return .figures(try figures(for: entry))
     } catch {
@@ -53,7 +54,7 @@ struct SavingsPlan {
 
   // MARK: Figures
 
-  private func parameters(for year: Int) throws(SavingsGap) -> SavingsYear {
+  private func parameters(for year: Int) throws(SavingsGap) -> SavingsYearValues {
     guard let parameters = years[year] else { throw .parameters(year: year) }
     return parameters
   }
@@ -64,11 +65,11 @@ struct SavingsPlan {
     return percent / 100
   }
 
-  private func figures(for entry: SavingsInput) throws(SavingsGap) -> SavingsFigures {
+  private func figures(for entry: SavingsEntryValues) throws(SavingsGap) -> SavingsFigures {
     let parameters = try parameters(for: entry.date.year)
     let net = Self.net(of: entry.grossMonthly, in: parameters)
     let startMoney = try startMoney(for: entry)
-    let delta = net - entry.expensesTotal - startMoney
+    let delta = net - entry.expenses.total - startMoney
     let savedShare = net * Self.savedShare
     let lifeLevelUp = net * parameters.lifeLevelUp / 100
     let steps = ((delta - savedShare - lifeLevelUp) / Self.roundingStep).rounded(.up)
@@ -81,7 +82,7 @@ struct SavingsPlan {
 
   /// Net of a monthly income. Every month is taxed on its own, with the yearly thresholds divided
   /// by 12, not by the income accumulated since the start of the year.
-  private static func net(of grossMonthly: Double, in year: SavingsYear) -> Double {
+  private static func net(of grossMonthly: Double, in year: SavingsYearValues) -> Double {
     var remaining = grossMonthly
     var net = 0.0
     for bracket in year.higherTaxBrackets.sorted(by: { $0.threshold > $1.threshold }) {
@@ -95,7 +96,7 @@ struct SavingsPlan {
   // MARK: Start money
 
   private func baselineStartMoney() throws(SavingsGap) -> Double {
-    try Self.net(of: baseline.grossMonthly, in: parameters(for: baseline.date.year)) - baseline.expensesTotal
+    try Self.net(of: baseline.grossMonthly, in: parameters(for: baseline.date.year)) - baseline.expenses.total
   }
 
   /// Growth, as a fraction, from the inflation of the date's year accrued by the date's month.
@@ -113,7 +114,7 @@ struct SavingsPlan {
     return value
   }
 
-  private func startMoney(for entry: SavingsInput) throws(SavingsGap) -> Double {
+  private func startMoney(for entry: SavingsEntryValues) throws(SavingsGap) -> Double {
     if entry.date == baseline.date { return try baselineStartMoney() }
     let year = entry.date.year
     let previousYearEnd =

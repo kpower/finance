@@ -51,6 +51,14 @@ enum BackupService {
     decoder.dateDecodingStrategy = .iso8601
     let backup = try decoder.decode(Backup.self, from: data)
     guard backup.version <= Backup.currentVersion else { throw BackupError.unsupportedVersion(backup.version) }
+    // The store takes both identifiers as they are, and one it does not know cannot be read back.
+    let areIdentifiersKnown = backup.snapshots.allSatisfy {
+      SnapshotKind(storedID: $0.kind) != nil && RateSource(storedID: $0.ratesSource) != nil
+    }
+    guard areIdentifiersKnown else {
+      throw DecodingError.dataCorrupted(
+        DecodingError.Context(codingPath: [], debugDescription: "Unknown kind or rate source of a history entry"))
+    }
     return backup
   }
 
@@ -61,10 +69,10 @@ enum BackupService {
     try context.fetch(FetchDescriptor<SavingsYear>()).forEach(context.delete)
     try context.fetch(FetchDescriptor<AnnualInflation>()).forEach(context.delete)
     for entry in backup.snapshots {
-      let rates = Rates(
-        usd: entry.usdRate, eur: entry.eurRate, date: entry.ratesRequestedFor, source: entry.ratesSource)
       context.insert(Snapshot(
-        date: entry.date, rates: rates, kind: entry.kind, items: entry.items,
+        date: day(of: entry.date), usdRate: entry.usdRate, eurRate: entry.eurRate,
+        ratesSource: entry.ratesSource, ratesRequestedFor: day(of: entry.ratesRequestedFor),
+        kind: entry.kind, items: entry.items,
         summaryRUB: entry.summaryRUB, summaryUSD: entry.summaryUSD, summaryEUR: entry.summaryEUR,
         comment: entry.comment ?? ""
       ))
@@ -72,7 +80,7 @@ enum BackupService {
     if let savings = backup.savings {
       for entry in savings.entries {
         context.insert(SavingsEntry(
-          date: entry.date, grossMonthly: entry.grossMonthly, expenses: entry.expenses,
+          date: day(of: entry.date), grossMonthly: entry.grossMonthly, expenses: entry.expenses,
           comment: entry.comment ?? ""
         ))
       }
@@ -87,5 +95,11 @@ enum BackupService {
       context.insert(AnnualInflation(year: year.year, percent: year.percent))
     }
     try context.save()
+  }
+
+  /// Entries are stored under the start of their day here, which a file written in another
+  /// time zone does not hold.
+  private static func day(of date: Date) -> Date {
+    Calendar.current.startOfDay(for: date)
   }
 }

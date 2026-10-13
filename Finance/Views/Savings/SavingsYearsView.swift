@@ -51,7 +51,7 @@ struct SavingsYearsView: View {
       }
     }
     .sheet(isPresented: $isAdding) {
-      SavingsYearSheet(after: years.first)
+      SavingsYearSheet(after: years.first.map { SavingsYearValues($0) })
     }
     .confirmationDialog(
       Text(.savingsYearsDeleteDialogTitle),
@@ -65,32 +65,37 @@ struct SavingsYearsView: View {
   }
 
   private var table: some View {
-    let plan = SavingsPlan(entries: entries.map(\.input), years: years, inflation: inflation)
-    return Table(years, selection: $selection) {
-      TableColumn(Text(.savingsYearsTableYearColumn)) { year in
-        Text(verbatim: String(year.year)).monospacedDigit()
+    let rows = years.map { Stored<SavingsYearValues>($0) }
+    let plan = SavingsPlan(
+      entries: entries.map { SavingsEntryValues($0) },
+      years: rows.map(\.values),
+      inflation: inflation.map { AnnualInflationValues($0) }
+    )
+    return Table(rows, selection: $selection) {
+      TableColumn(Text(.savingsYearsTableYearColumn)) { row in
+        Text(verbatim: String(row.values.year)).monospacedDigit()
       }
       .width(min: 50, ideal: 60)
 
-      TableColumn(Text(.savingsYearsTableLifeLevelUpColumn)) { year in
-        PercentCell(value: Bindable(year).lifeLevelUp)
+      TableColumn(Text(.savingsYearsTableLifeLevelUpColumn)) { row in
+        PercentCell(value: binding(to: row, \.lifeLevelUp))
       }
       .width(min: 80, ideal: 130)
       .alignment(.trailing)
 
-      TableColumn(Text(.savingsYearsTableBaseTaxColumn)) { year in
-        PercentCell(value: Bindable(year).baseTaxRate)
+      TableColumn(Text(.savingsYearsTableBaseTaxColumn)) { row in
+        PercentCell(value: binding(to: row, \.baseTaxRate))
       }
       .width(min: 70, ideal: 90)
       .alignment(.trailing)
 
-      TableColumn(Text(.savingsYearsTableHigherTaxColumn)) { year in
-        HigherTaxCell(year: year)
+      TableColumn(Text(.savingsYearsTableHigherTaxColumn)) { row in
+        HigherTaxCell(brackets: binding(to: row, \.higherTaxBrackets))
       }
       .width(min: 200, ideal: 380)
 
-      TableColumn(Text(.savingsYearsTableStartMoneyColumn)) { year in
-        Cell.money(plan?.startMoneyAtEnd(of: year.year))
+      TableColumn(Text(.savingsYearsTableStartMoneyColumn)) { row in
+        Cell.money(plan?.startMoneyAtEnd(of: row.values.year))
       }
       .width(min: 110, ideal: 150)
       .alignment(.trailing)
@@ -101,6 +106,22 @@ struct SavingsYearsView: View {
       }
     }
     .onDeleteCommand { pendingDelete = selection }
+  }
+
+  /// Binding to a value of the year behind `row`; a change goes to the stored year at once.
+  private func binding<Value>(
+    to row: Stored<SavingsYearValues>, _ field: WritableKeyPath<SavingsYearValues, Value>
+  ) -> Binding<Value> {
+    Binding(
+      get: { row.values[keyPath: field] },
+      set: { newValue in
+        guard let year = years.first(where: { $0.persistentModelID == row.id }) else { return }
+        // The stored values as they are now: `row` may be older than another change of the year.
+        var values = SavingsYearValues(year)
+        values[keyPath: field] = newValue
+        year.update(from: values)
+      }
+    )
   }
 
   private func delete(_ ids: Set<PersistentIdentifier>) {
@@ -128,11 +149,11 @@ private struct PercentCell: View {
 
 /// Raised tax rates of a year in one line, edited in a popover.
 private struct HigherTaxCell: View {
-  @Bindable var year: SavingsYear
+  @Binding var brackets: [TaxBracket]
   @State private var isEditing = false
 
   private var summary: String {
-    year.higherTaxBrackets
+    brackets
       .sorted { $0.threshold < $1.threshold }
       .map { String(localized: .savingsYearsBracketSummary(Fmt.percent($0.rate), Fmt.compactMoney($0.threshold))) }
       .joined(separator: " · ")
@@ -140,7 +161,7 @@ private struct HigherTaxCell: View {
 
   var body: some View {
     HStack(spacing: 4) {
-      if year.higherTaxBrackets.isEmpty {
+      if brackets.isEmpty {
         Text(verbatim: "—").foregroundStyle(.tertiary)
       } else {
         Text(summary).lineLimit(1).help(Text(verbatim: summary))
@@ -154,14 +175,22 @@ private struct HigherTaxCell: View {
       .foregroundStyle(.secondary)
       .help(Text(.savingsYearsBracketsEditButton))
       .popover(isPresented: $isEditing, arrowEdge: .bottom) {
-        TaxBracketsEditor(brackets: $year.higherTaxBrackets)
+        TaxBracketsEditor(brackets: brackets) { brackets = $0 }
       }
     }
   }
 }
 
 private struct TaxBracketsEditor: View {
-  @Binding var brackets: [TaxBracket]
+  /// The editor's own copy. Brackets read from the store again have other ids, and a field
+  /// must stay the same row while it is typed into.
+  @State private var brackets: [TaxBracket]
+  private let onChange: ([TaxBracket]) -> Void
+
+  init(brackets: [TaxBracket], onChange: @escaping ([TaxBracket]) -> Void) {
+    _brackets = State(initialValue: brackets)
+    self.onChange = onChange
+  }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
@@ -195,6 +224,7 @@ private struct TaxBracketsEditor: View {
       }
     }
     .padding(16)
+    .onChange(of: brackets) { onChange(brackets) }
   }
 
   private func numberField(_ value: Binding<Double>) -> some View {

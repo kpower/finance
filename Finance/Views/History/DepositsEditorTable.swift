@@ -4,11 +4,11 @@ import SwiftUI
 /// Editable deposits of a detailed history entry.
 /// A cell is highlighted when its value differs from the saved one; every cell of an added deposit is.
 struct DepositsEditorTable: View {
-  @Binding var items: [DepositRecord]
+  @Binding var items: [Deposit]
   /// Saved deposits, matched to `items` by id.
-  let saved: [DepositRecord]
+  let saved: [Deposit]
   let rates: Rates?
-  @Binding var selection: Set<DepositRecord.ID>
+  @Binding var selection: Set<Deposit.ID>
   let onAdd: () -> Void
   let onDeleteSelected: () -> Void
 
@@ -36,7 +36,7 @@ struct DepositsEditorTable: View {
       .filter { !$0.isEmpty }
       .sorted { $0.localizedStandardCompare($1) == .orderedAscending }
 
-    func isChanged<Value: Equatable>(_ item: DepositRecord, _ field: KeyPath<DepositRecord, Value>) -> Bool {
+    func isChanged<Value: Equatable>(_ item: Deposit, _ field: KeyPath<Deposit, Value>) -> Bool {
       guard let saved = savedByID[item.id] else { return true }
       return item[keyPath: field] != saved[keyPath: field]
     }
@@ -118,7 +118,7 @@ struct DepositsEditorTable: View {
 
   /// Binding to the deposit with `item`'s id. A cell can outlive its deposit for a moment after it is
   /// removed, so reads then fall back to `item`, the value the cell was built with.
-  private func binding(to item: DepositRecord) -> Binding<DepositRecord> {
+  private func binding(to item: Deposit) -> Binding<Deposit> {
     Binding(
       get: { items.first { $0.id == item.id } ?? item },
       set: { newValue in
@@ -174,7 +174,7 @@ private struct AmountCell: View {
 }
 
 private struct TermCell: View {
-  @Binding var deposit: DepositRecord
+  @Binding var deposit: Deposit
 
   var body: some View {
     TextField(
@@ -193,7 +193,7 @@ private struct TermCell: View {
 
 /// Close date: calculated from open date and term, can be overridden by hand.
 private struct CloseDateCell: View {
-  @Binding var deposit: DepositRecord
+  @Binding var deposit: Deposit
 
   var body: some View {
     HStack(spacing: 4) {
@@ -212,7 +212,7 @@ private struct CloseDateCell: View {
 }
 
 private struct TotalCell: View {
-  let deposit: DepositRecord
+  let deposit: Deposit
   let rates: Rates?
 
   /// Without rates the total is known only when there is nothing to convert.

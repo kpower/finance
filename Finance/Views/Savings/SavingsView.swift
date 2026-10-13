@@ -14,7 +14,14 @@ struct SavingsView: View {
   @State private var pendingDelete: Set<PersistentIdentifier> = []
   @SceneStorage("savingsColumns") private var customization = TableColumnCustomization<SavingsRow>()
 
-  private var rows: [SavingsRow] { SavingsPlan.rows(for: entries, years: years, inflation: inflation).reversed() }
+  private var rows: [SavingsRow] {
+    SavingsPlan.rows(
+      for: entries.map { Stored($0) },
+      years: years.map { SavingsYearValues($0) },
+      inflation: inflation.map { AnnualInflationValues($0) }
+    )
+    .reversed()
+  }
 
   var body: some View {
     Group {
@@ -45,7 +52,7 @@ struct SavingsView: View {
     .navigationDestination(for: SavingsRoute.self) { route in
       switch route {
       case .newEntry:
-        SavingsEntryDetailView(newEntryAfter: entries.last, openYears: openYears)
+        SavingsEntryDetailView(newEntryAfter: entries.last.map { SavingsEntryValues($0) }, openYears: openYears)
       case let .entry(id):
         if let entry = entries.first(where: { $0.persistentModelID == id }) {
           SavingsEntryDetailView(entry: entry, openYears: openYears)

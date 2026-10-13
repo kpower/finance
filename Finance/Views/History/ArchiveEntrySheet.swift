@@ -88,11 +88,11 @@ struct ArchiveEntrySheet: View {
 
   private func save() {
     guard let rates else { return }
-    context.insert(Snapshot(
+    context.insert(Snapshot(SnapshotValues(
       date: date, rates: rates,
-      rub: rub ?? 0, usd: usd ?? 0, eur: eur ?? 0,
+      content: .summaryOnly(CurrencyAmounts(rub: rub ?? 0, usd: usd ?? 0, eur: eur ?? 0)),
       comment: comment.trimmingCharacters(in: .whitespacesAndNewlines)
-    ))
+    )))
     try? context.save()
     dismiss()
   }

@@ -13,13 +13,13 @@ struct HistoryView: View {
   @State private var isAddingArchive = false
   @SceneStorage("historyColumns") private var customization = TableColumnCustomization<HistoryRow>()
 
-  private var rows: [HistoryRow] { HistoryCalculator.rows(for: snapshots).reversed() }
+  private var rows: [HistoryRow] { HistoryCalculator.rows(for: snapshots.map { Stored($0) }).reversed() }
 
   /// Deposits of the latest detailed entry, which a new entry starts from; empty when there is none.
-  private var latestDeposits: [DepositRecord] {
+  private var latestDeposits: [Deposit] {
     for snapshot in snapshots.reversed() {
-      switch snapshot.kind {
-      case .detailed: return snapshot.items
+      switch SnapshotValues(snapshot).content {
+      case let .detailed(deposits): return deposits
       case .summaryOnly: continue
       }
     }

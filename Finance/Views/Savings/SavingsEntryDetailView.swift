@@ -22,7 +22,7 @@ struct SavingsEntryDetailView: View {
   @State private var isSaveFailureShown = false
 
   init(entry: SavingsEntry, openYears: @escaping () -> Void) {
-    let draft = SavingsEntryDraft(entry)
+    let draft = SavingsEntryDraft(SavingsEntryValues(entry))
     self.openYears = openYears
     _stored = State(initialValue: entry)
     _saved = State(initialValue: draft)
@@ -30,7 +30,7 @@ struct SavingsEntryDetailView: View {
   }
 
   /// A new entry that starts from the income and expenses of `latest`.
-  init(newEntryAfter latest: SavingsEntry?, openYears: @escaping () -> Void) {
+  init(newEntryAfter latest: SavingsEntryValues?, openYears: @escaping () -> Void) {
     let draft = SavingsEntryDraft.newEntry(after: latest)
     self.openYears = openYears
     _stored = State(initialValue: nil)
@@ -90,14 +90,23 @@ struct SavingsEntryDetailView: View {
 
   private var hasUnsavedChanges: Bool { draft != saved }
 
-  private var otherEntries: [SavingsEntry] {
-    entries.filter { $0.persistentModelID != stored?.persistentModelID }
+  private var otherEntries: [SavingsEntryValues] {
+    entries.filter { $0.persistentModelID != stored?.persistentModelID }.map { SavingsEntryValues($0) }
+  }
+
+  /// The draft as an entry; nil until its income is entered.
+  private var values: SavingsEntryValues? {
+    guard let grossMonthly = draft.grossMonthly else { return nil }
+    return SavingsEntryValues(
+      date: draft.date, grossMonthly: grossMonthly, expenses: draft.expenses,
+      comment: draft.comment.trimmingCharacters(in: .whitespacesAndNewlines)
+    )
   }
 
   private var validation: SavingsValidation {
     if otherEntries.contains(where: { $0.date == draft.date }) { return .blocked(.dayTaken) }
-    guard let grossMonthly = draft.grossMonthly else { return .blocked(.noIncome) }
-    return .ready(grossMonthly: grossMonthly)
+    guard let values else { return .blocked(.noIncome) }
+    return .ready(values)
   }
 
   /// A new entry can be saved as it started; a stored one only when something changed.
@@ -110,33 +119,31 @@ struct SavingsEntryDetailView: View {
 
   /// What the draft would give among the other entries; nil until its income is entered.
   private var outcome: SavingsOutcome? {
-    guard let grossMonthly = draft.grossMonthly else { return nil }
-    let input = SavingsInput(date: draft.date, grossMonthly: grossMonthly, expensesTotal: draft.expenses.total)
-    return SavingsPlan(entries: otherEntries.map(\.input) + [input], years: years, inflation: inflation)?
-      .outcome(for: input)
+    guard let values else { return nil }
+    let plan = SavingsPlan(
+      entries: otherEntries + [values],
+      years: years.map { SavingsYearValues($0) },
+      inflation: inflation.map { AnnualInflationValues($0) }
+    )
+    return plan?.outcome(for: values)
   }
 
   /// Writes the draft to the entry, creating the entry on the first save of a new one.
   @discardableResult
   private func save() -> Bool {
     switch validation {
-    case let .ready(grossMonthly): save(grossMonthly: grossMonthly)
+    case let .ready(values): save(values)
     case .blocked: false
     }
   }
 
-  private func save(grossMonthly: Double) -> Bool {
-    let comment = draft.comment.trimmingCharacters(in: .whitespacesAndNewlines)
+  private func save(_ values: SavingsEntryValues) -> Bool {
     let entry: SavingsEntry
     if let stored {
-      stored.date = draft.date
-      stored.grossMonthly = grossMonthly
-      stored.expenses = draft.expenses
-      stored.comment = comment
+      stored.update(from: values)
       entry = stored
     } else {
-      entry = SavingsEntry(
-        date: draft.date, grossMonthly: grossMonthly, expenses: draft.expenses, comment: comment)
+      entry = SavingsEntry(values)
       context.insert(entry)
     }
     do {
@@ -147,7 +154,8 @@ struct SavingsEntryDetailView: View {
       return false
     }
     stored = entry
-    saved = SavingsEntryDraft(entry)
+    // Not read back from the store: the expenses would come with other ids and lose their rows.
+    saved = SavingsEntryDraft(values)
     draft = saved
     return true
   }
@@ -307,7 +315,7 @@ struct SavingsEntryDetailView: View {
 }
 
 private enum SavingsValidation {
-  case ready(grossMonthly: Double)
+  case ready(SavingsEntryValues)
   case blocked(SavingsSaveBlocker)
 }
 
