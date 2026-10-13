@@ -1,5 +1,5 @@
 import SwiftData
 
 enum FinanceSchema {
-  static let models: [any PersistentModel.Type] = [Deposit.self, Snapshot.self]
+  static let models: [any PersistentModel.Type] = [Snapshot.self]
 }

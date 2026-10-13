@@ -1,42 +1,262 @@
 import SwiftData
 import SwiftUI
 
-/// A history entry: deposits as they were on the entry's date (or only totals for archive entries).
-/// Date, rates and archive totals are editable; per-deposit details are read-only.
+/// A history entry opened for editing: a stored one, or a new detailed one that is stored by its first save.
+/// Edits stay in a draft and are highlighted; only Save writes them to the entry, and leaving the screen
+/// or closing the window with unsaved edits asks what to do with them.
 struct SnapshotDetailView: View {
-  @Bindable var snapshot: Snapshot
   @Environment(\.modelContext) private var context
-  @State private var dateConflict: Date?
+  @Environment(\.dismiss) private var dismiss
 
-  private var rates: Rates { snapshot.rates }
+  /// Entry the draft is saved to; nil while a new entry has not been saved yet.
+  @State private var stored: Snapshot?
+  /// What the draft is compared with: the stored values, or what a new entry started from.
+  @State private var saved: SnapshotDraft
+  @State private var draft: SnapshotDraft
+  @State private var selection = Set<DepositRecord.ID>()
+  @State private var isConfirmingClear = false
+  @State private var isConfirmingExit = false
+  @State private var isSaveFailureShown = false
+
+  init(snapshot: Snapshot) {
+    let draft = SnapshotDraft(snapshot)
+    _stored = State(initialValue: snapshot)
+    _saved = State(initialValue: draft)
+    _draft = State(initialValue: draft)
+  }
+
+  /// A new detailed entry that starts from `items`.
+  init(newEntryWith items: [DepositRecord]) {
+    let draft = SnapshotDraft.newEntry(items: items)
+    _stored = State(initialValue: nil)
+    _saved = State(initialValue: draft)
+    _draft = State(initialValue: draft)
+  }
 
   var body: some View {
     VStack(spacing: 0) {
       header
       Divider()
-      switch snapshot.kind {
-      case .detailed: itemsTable
-      case .summaryOnly: summaryNote
+      switch draft.kind {
+      case .detailed:
+        DepositsEditorTable(
+          items: $draft.items, saved: saved.items, rates: draft.rates,
+          selection: $selection, onAdd: addDeposit, onDeleteSelected: deleteSelectedDeposits
+        )
+      case .summaryOnly:
+        summaryNote
       }
       Divider()
       footer
     }
     .navigationTitle(title)
-    .alert(
-      Text(.historyDetailDateConflictAlertTitle),
-      isPresented: Binding(get: { dateConflict != nil }, set: { if !$0 { dateConflict = nil } })
+    // The system back button cannot be asked to wait for a confirmation, so the screen has its own.
+    .navigationBarBackButtonHidden()
+    .toolbar {
+      ToolbarItem(placement: .navigation) {
+        Button(action: requestExit) {
+          Label { Text(.historyDetailToolbarBackButton) } icon: { Image(systemName: "chevron.backward") }
+        }
+      }
+      ToolbarItemGroup {
+        switch draft.kind {
+        case .detailed: depositButtons
+        case .summaryOnly: EmptyView()
+        }
+      }
+      ToolbarItem {
+        Button { save() } label: { Text(.historyDetailToolbarSaveButton) }
+          .keyboardShortcut("s", modifiers: .command)
+          .disabled(!canSave)
+      }
+    }
+    .confirmationDialog(
+      Text(.historyDetailClearDialogTitle),
+      isPresented: $isConfirmingClear,
+      titleVisibility: .visible
     ) {
-      Button {} label: { Text(.historyDetailDateConflictAlertOkButton) }
+      Button(role: .destructive, action: clearDeposits) { Text(.historyDetailClearDialogClearButton) }
+      Button(role: .cancel) {} label: { Text(.historyDetailClearDialogCancelButton) }
     } message: {
-      Text(.historyDetailDateConflictAlertMessage(Fmt.date(dateConflict)))
+      Text(.historyDetailClearDialogMessage)
+    }
+    .confirmationDialog(exitDialogTitle, isPresented: $isConfirmingExit, titleVisibility: .visible) {
+      exitDialogActions { dismiss() }
+      Button(role: .cancel) {} label: { Text(.historyDetailExitDialogCancelButton) }
+    } message: {
+      exitDialogMessage
+    }
+    // Closing the window or quitting the app; the system closes the window after either action.
+    .dismissalConfirmationDialog(exitDialogTitle, shouldPresent: hasUnsavedChanges) {
+      exitDialogActions {}
+    } message: {
+      exitDialogMessage
+    }
+    .alert(Text(.historyDetailSaveFailedAlertTitle), isPresented: $isSaveFailureShown) {
+      Button {} label: { Text(.historyDetailSaveFailedAlertOkButton) }
+    } message: {
+      Text(.historyDetailSaveFailedAlertMessage)
     }
   }
 
   private var title: Text {
-    switch snapshot.kind {
-    case .detailed: Text(.historyDetailDepositsTitle(Fmt.date(snapshot.date)))
-    case .summaryOnly: Text(.historyDetailArchiveTitle(Fmt.date(snapshot.date)))
+    guard stored != nil else { return Text(.historyDetailNewTitle) }
+    switch saved.kind {
+    case .detailed: return Text(.historyDetailDepositsTitle(Fmt.date(saved.date)))
+    case .summaryOnly: return Text(.historyDetailArchiveTitle(Fmt.date(saved.date)))
     }
+  }
+
+  // MARK: Draft state
+
+  private var hasUnsavedChanges: Bool { draft != saved }
+
+  private enum SaveBlocker {
+    case dayTaken
+    case noRates
+    case noDeposits
+
+    var message: LocalizedStringResource {
+      switch self {
+      case .dayTaken: .historyDetailBlockerDayTaken
+      case .noRates: .historyDetailBlockerNoRates
+      case .noDeposits: .historyDetailBlockerNoDeposits
+      }
+    }
+  }
+
+  private enum Validation {
+    case ready(Rates)
+    case blocked(SaveBlocker)
+  }
+
+  private var validation: Validation {
+    if SnapshotService.isDayTaken(draft.date, excluding: stored, in: context) { return .blocked(.dayTaken) }
+    guard let rates = draft.rates else { return .blocked(.noRates) }
+    switch draft.kind {
+    case .detailed: return draft.items.isEmpty ? .blocked(.noDeposits) : .ready(rates)
+    case .summaryOnly: return .ready(rates)
+    }
+  }
+
+  /// A new entry can be saved as it started; a stored one only when something changed.
+  private var canSave: Bool {
+    switch validation {
+    case .ready: stored == nil || hasUnsavedChanges
+    case .blocked: false
+    }
+  }
+
+  /// Writes the draft to the entry, creating the entry on the first save of a new one.
+  @discardableResult
+  private func save() -> Bool {
+    guard case .ready(let rates) = validation else { return false }
+    let comment = draft.comment.trimmingCharacters(in: .whitespacesAndNewlines)
+    let snapshot: Snapshot
+    if let stored {
+      stored.move(to: draft.date)
+      stored.rates = rates
+      stored.comment = comment
+      stored.items = draft.items
+      stored.summaryRUB = draft.summaryRUB
+      stored.summaryUSD = draft.summaryUSD
+      stored.summaryEUR = draft.summaryEUR
+      snapshot = stored
+    } else {
+      snapshot = Snapshot(
+        date: draft.date, rates: rates, kind: draft.kind, items: draft.items,
+        summaryRUB: draft.summaryRUB, summaryUSD: draft.summaryUSD, summaryEUR: draft.summaryEUR,
+        comment: comment
+      )
+      context.insert(snapshot)
+    }
+    do {
+      try context.save()
+    } catch {
+      context.rollback()
+      isSaveFailureShown = true
+      return false
+    }
+    stored = snapshot
+    saved = SnapshotDraft(snapshot)
+    draft = saved
+    return true
+  }
+
+  // MARK: Deposits
+
+  @ViewBuilder private var depositButtons: some View {
+    Button(action: addDeposit) {
+      Label { Text(.historyDetailToolbarAddButton) } icon: { Image(systemName: "plus") }
+    }
+    Button(action: deleteSelectedDeposits) {
+      Label { Text(.historyDetailToolbarDeleteButton) } icon: { Image(systemName: "trash") }
+    }
+    .disabled(selection.isEmpty)
+    Button { isConfirmingClear = true } label: {
+      Label { Text(.historyDetailToolbarClearAllButton) } icon: { Image(systemName: "clear") }
+    }
+    .disabled(draft.items.isEmpty)
+  }
+
+  private func addDeposit() {
+    // A blank row for the user to fill in.
+    let deposit = DepositRecord(
+      name: "", bank: "", amountRUB: nil, amountUSD: nil, amountEUR: nil,
+      interestRate: nil, termMonths: nil, openDate: nil, closeDate: nil
+    )
+    draft.items.append(deposit)
+    selection = [deposit.id]
+  }
+
+  private func deleteSelectedDeposits() {
+    draft.items.removeAll { selection.contains($0.id) }
+    selection = []
+  }
+
+  private func clearDeposits() {
+    draft.items = []
+    selection = []
+  }
+
+  // MARK: Exit
+
+  private func requestExit() {
+    if hasUnsavedChanges {
+      isConfirmingExit = true
+    } else {
+      dismiss()
+    }
+  }
+
+  private var exitDialogTitle: Text {
+    switch validation {
+    case .ready: Text(.historyDetailExitDialogSaveTitle)
+    case .blocked: Text(.historyDetailExitDialogBlockedTitle)
+    }
+  }
+
+  private var exitDialogMessage: Text {
+    switch validation {
+    case .ready: Text(.historyDetailExitDialogSaveMessage)
+    case .blocked(let blocker): Text(.historyDetailExitDialogBlockedMessage(String(localized: blocker.message)))
+    }
+  }
+
+  /// Save (only when the draft can be saved) and Don't Save; `leave` runs once the choice is carried out.
+  @ViewBuilder
+  private func exitDialogActions(leave: @escaping () -> Void) -> some View {
+    switch validation {
+    case .ready:
+      Button {
+        if save() { leave() }
+      } label: {
+        Text(.historyDetailExitDialogSaveButton)
+      }
+    case .blocked:
+      EmptyView()
+    }
+    Button(role: .destructive, action: leave) { Text(.historyDetailExitDialogDiscardButton) }
   }
 
   // MARK: Header
@@ -62,67 +282,23 @@ struct SnapshotDetailView: View {
       DatePicker(selection: dateBinding, displayedComponents: .date) { Text(.historyDetailDateLabel) }
         .datePickerStyle(.field)
         .fixedSize()
-      RatesEditor(date: snapshot.date, rates: rates) { snapshot.rates = $0 }
+        .changeHighlight(draft.date != saved.date)
+      RatesEditor(date: draft.date, rates: draft.rates) { draft.rates = $0 }
+        .changeHighlight(draft.rates != saved.rates)
     }
   }
 
   private var commentField: some View {
-    TextField(text: $snapshot.comment) { Text(.historyDetailCommentLabel) }
+    TextField(text: $draft.comment) { Text(.historyDetailCommentLabel) }
       .frame(maxWidth: .infinity)
+      .changeHighlight(draft.comment != saved.comment)
   }
 
-  /// Moves the entry to another day unless that day already has an entry.
   private var dateBinding: Binding<Date> {
-    Binding(
-      get: { snapshot.date },
-      set: { newDate in
-        if SnapshotService.isDayTaken(newDate, excluding: snapshot, in: context) {
-          dateConflict = newDate
-        } else {
-          snapshot.move(to: newDate)
-        }
-      }
-    )
+    Binding(get: { draft.date }, set: { draft.date = Calendar.current.startOfDay(for: $0) })
   }
 
   // MARK: Content
-
-  private var itemsTable: some View {
-    Table(snapshot.items) {
-      TableColumn(Text(.historyDetailTableNameColumn)) { Text($0.name) }
-        .width(min: 120, ideal: 180)
-      TableColumn(Text(.historyDetailTableBankColumn)) { Text($0.bank) }
-        .width(min: 90, ideal: 130)
-      TableColumn(Text(verbatim: "₽")) { money($0.amountRUB) }
-        .width(min: 100, ideal: 115)
-        .alignment(.trailing)
-      TableColumn(Text(verbatim: "$")) { money($0.amountUSD) }
-        .width(min: 90, ideal: 105)
-        .alignment(.trailing)
-      TableColumn(Text(verbatim: "€")) { money($0.amountEUR) }
-        .width(min: 90, ideal: 105)
-        .alignment(.trailing)
-      TableColumn(Text(.historyDetailTableTotalRubColumn)) {
-        Text($0.isEmpty ? "" : Fmt.money($0.totalRUB(at: rates)))
-          .monospacedDigit().fontWeight(.semibold)
-      }
-      .width(min: 110, ideal: 125)
-      .alignment(.trailing)
-      TableColumn(Text(verbatim: "%")) { item in
-        Text(item.interestRate.map(Fmt.percent) ?? "")
-          .monospacedDigit()
-      }
-      .width(min: 50, ideal: 60)
-      .alignment(.trailing)
-      TableColumn(Text(.historyDetailTableTermColumn)) { Text($0.termMonths.map(String.init) ?? "").monospacedDigit() }
-        .width(min: 70, ideal: 80)
-        .alignment(.trailing)
-      TableColumn(Text(.historyDetailTableOpenDateColumn)) { Text(Fmt.date($0.openDate)).monospacedDigit() }
-        .width(min: 80, ideal: 90)
-      TableColumn(Text(.historyDetailTableCloseDateColumn)) { Text(Fmt.date($0.closeDate)).monospacedDigit() }
-        .width(min: 80, ideal: 90)
-    }
-  }
 
   private var summaryNote: some View {
     ContentUnavailableView {
@@ -131,9 +307,9 @@ struct SnapshotDetailView: View {
       Text(.historyDetailSummaryOnlyDescription)
     } actions: {
       HStack(spacing: 20) {
-        sumField("₽", value: $snapshot.summaryRUB)
-        sumField("$", value: $snapshot.summaryUSD)
-        sumField("€", value: $snapshot.summaryEUR)
+        sumField("₽", value: $draft.summaryRUB, isChanged: draft.summaryRUB != saved.summaryRUB)
+        sumField("$", value: $draft.summaryUSD, isChanged: draft.summaryUSD != saved.summaryUSD)
+        sumField("€", value: $draft.summaryEUR, isChanged: draft.summaryEUR != saved.summaryEUR)
       }
     }
     // Fills the space between header and footer. Not `fixedSize`: measured at zero width its text
@@ -141,7 +317,7 @@ struct SnapshotDetailView: View {
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 
-  private func sumField(_ title: String, value: Binding<Double>) -> some View {
+  private func sumField(_ title: String, value: Binding<Double>, isChanged: Bool) -> some View {
     LabeledContent(title) {
       TextField(title, value: value, format: Fmt.moneyInput)
         .labelsHidden()
@@ -150,23 +326,25 @@ struct SnapshotDetailView: View {
         .frame(width: 140)
     }
     .fixedSize()
-  }
-
-  private func money(_ value: Double?) -> some View {
-    Text(Fmt.money(value)).monospacedDigit()
+    .changeHighlight(isChanged)
   }
 
   // MARK: Footer
 
   private var footer: some View {
     HStack(alignment: .firstTextBaseline, spacing: 24) {
+      status
       Spacer()
-      sum("Σ ₽", snapshot.sumRUB)
-      sum("Σ $", snapshot.sumUSD)
-      sum("Σ €", snapshot.sumEUR)
+      sum("Σ ₽", Fmt.money(draft.sumRUB))
+      sum("Σ $", Fmt.money(draft.sumUSD))
+      sum("Σ €", Fmt.money(draft.sumEUR))
       VStack(alignment: .trailing, spacing: 2) {
         Text(.historyDetailFooterTotalRubLabel).font(.caption).foregroundStyle(.secondary)
-        Text(Fmt.money(snapshot.totalRUB)).font(.title3.weight(.semibold)).monospacedDigit()
+        if let rates = draft.rates {
+          Text(Fmt.money(draft.totalRUB(at: rates))).font(.title3.weight(.semibold)).monospacedDigit()
+        } else {
+          Text(.historyDetailFooterNoRateLabel).font(.title3).foregroundStyle(.secondary)
+        }
       }
     }
     .padding(.horizontal, 16)
@@ -174,10 +352,30 @@ struct SnapshotDetailView: View {
     .background(.bar)
   }
 
-  private func sum(_ title: String, _ value: Double) -> some View {
+  /// What stands between the draft and the stored entry: why it cannot be saved, or that it differs.
+  @ViewBuilder private var status: some View {
+    switch validation {
+    case .blocked(let blocker):
+      Label { Text(blocker.message) } icon: { Image(systemName: "exclamationmark.triangle.fill") }
+        .foregroundStyle(.red)
+    case .ready:
+      if stored == nil {
+        Text(.historyDetailStatusNew).foregroundStyle(.secondary)
+      } else if hasUnsavedChanges {
+        // Removed deposits have no row left to highlight, so they are counted here.
+        let removed = saved.items.count { item in !draft.items.contains { $0.id == item.id } }
+        Text(removed == 0 ? LocalizedStringResource.historyDetailStatusUnsaved : .historyDetailStatusUnsavedRemoved(removed))
+          .padding(.horizontal, 6)
+          .padding(.vertical, 2)
+          .changeHighlight(true)
+      }
+    }
+  }
+
+  private func sum(_ title: String, _ value: String) -> some View {
     VStack(alignment: .trailing, spacing: 2) {
       Text(title).font(.caption).foregroundStyle(.secondary)
-      Text(Fmt.money(value)).monospacedDigit()
+      Text(value).monospacedDigit()
     }
   }
 }
@@ -193,5 +391,13 @@ struct SnapshotDetailView: View {
     if let snapshot { SnapshotDetailView(snapshot: snapshot) }
   }
   .modelContainer(container)
+  .frame(width: 1100, height: 400)
+}
+
+#Preview("New entry") {
+  NavigationStack {
+    SnapshotDetailView(newEntryWith: [])
+  }
+  .modelContainer(for: FinanceSchema.models, inMemory: true)
   .frame(width: 1100, height: 400)
 }
