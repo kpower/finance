@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// App settings: the source rates are fetched from.
-struct SettingsView: View {
+/// The source exchange rates are fetched from.
+struct RatesSettingsView: View {
   @AppStorage(RateSource.selectionKey) private var selectedProvider = RateSource.cbrXML
 
   /// Selected provider; falls back to an available one if the stored choice was retired.
@@ -18,10 +18,9 @@ struct SettingsView: View {
       }
     }
     .formStyle(.grouped)
-    .frame(width: 420)
   }
 }
 
 #Preview {
-  SettingsView()
+  RatesSettingsView()
 }

@@ -2,14 +2,6 @@ import Foundation
 
 /// https://www.cbr-xml-daily.ru — unofficial JSON mirror of the CBR daily rates.
 struct CBRJSONProvider: RateProvider {
-  private struct Response: Decodable {
-    struct Valute: Decodable {
-      let Nominal: Double
-      let Value: Double
-    }
-    let Valute: [String: Valute]
-  }
-
   func fetch(on date: Date) async throws -> Rates {
     // The archive has no file for weekends/holidays: step back up to a week.
     let path = Self.dateFormatter("yyyy/MM/dd")
@@ -26,9 +18,17 @@ struct CBRJSONProvider: RateProvider {
 
   /// "Currency code → RUB per unit".
   private static func parse(_ data: Data) throws -> [String: Double] {
-    guard let response = try? JSONDecoder().decode(Response.self, from: data) else {
+    guard let response = try? JSONDecoder().decode(DailyRatesResponse.self, from: data) else {
       throw RateFetchError.malformed
     }
     return response.Valute.compactMapValues { $0.Nominal > 0 ? $0.Value / $0.Nominal : nil }
   }
+}
+
+private struct DailyRatesResponse: Decodable {
+  struct Valute: Decodable {
+    let Nominal: Double
+    let Value: Double
+  }
+  let Valute: [String: Valute]
 }

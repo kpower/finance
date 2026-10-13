@@ -30,6 +30,23 @@ enum PreviewData {
       date: day(-14), rates: Rates(usd: 94.1, eur: 101.7, date: day(-14), source: .cbrXML), items: items(1.0)))
     context.insert(Snapshot(
       date: day(-2), rates: Rates(usd: 92.0, eur: 104.3, date: day(-2), source: .cbrXML), items: items(1.1)))
+    for year in 2024...cal.component(.year, from: .now) {
+      context.insert(AnnualInflation(year: year, percent: 7.5))
+      context.insert(SavingsYear(
+        year: year, lifeLevelUp: 5, baseTaxRate: 13,
+        higherTaxBrackets: [TaxBracket(threshold: 2_400_000, rate: 15), TaxBracket(threshold: 5_000_000, rate: 18)]))
+    }
+    context.insert(SavingsEntry(
+      date: cal.date(from: DateComponents(year: 2024, month: 3, day: 1))!, grossMonthly: 250_000,
+      expenses: [ExpenseBlock(name: "Аренда", content: .single(amount: 60_000))], comment: "ревью"))
+    context.insert(SavingsEntry(date: day(-40), grossMonthly: 420_000, expenses: expenses, comment: "ипотека"))
     try? context.save()
   }
+
+  static let expenses = [
+    ExpenseBlock(name: "Страховка", content: .single(amount: 4_000)),
+    ExpenseBlock(
+      name: "Ипотека",
+      content: .split(parts: [ExpensePart(name: "тело", amount: 78_000), ExpensePart(name: "проценты", amount: 18_000)]))
+  ]
 }

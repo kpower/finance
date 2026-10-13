@@ -15,14 +15,8 @@ private struct BackupSupport: ViewModifier {
   @State private var exportDocument: BackupDocument?
   @State private var isImporting = false
   @State private var pendingRestore: Backup?
-  @State private var message: Message?
+  @State private var message: BackupMessage?
   @State private var restoreCount = 0
-
-  private struct Message: Identifiable {
-    let id = UUID()
-    let title: String
-    let text: String
-  }
 
   func body(content: Content) -> some View {
     content
@@ -36,8 +30,11 @@ private struct BackupSupport: ViewModifier {
         contentType: .json,
         defaultFilename: defaultFilename
       ) { result in
-        if case .failure = result {
-          message = Message(
+        switch result {
+        case .success:
+          break
+        case .failure:
+          message = BackupMessage(
             title: String(localized: .backupExportAlertWriteFailedTitle),
             text: String(localized: .backupExportAlertWriteFailedMessage)
           )
@@ -70,7 +67,7 @@ private struct BackupSupport: ViewModifier {
     do {
       exportDocument = BackupDocument(data: try BackupService.encode(BackupService.makeBackup(from: context)))
     } catch {
-      message = Message(
+      message = BackupMessage(
         title: String(localized: .backupExportAlertCreateFailedTitle),
         text: String(localized: .backupExportAlertCreateFailedMessage)
       )
@@ -83,13 +80,13 @@ private struct BackupSupport: ViewModifier {
       let accessing = url.startAccessingSecurityScopedResource()
       defer { if accessing { url.stopAccessingSecurityScopedResource() } }
       pendingRestore = try BackupService.decode(Data(contentsOf: url))
-    } catch BackupError.unsupportedVersion(let version) {
-      message = Message(
+    } catch let BackupError.unsupportedVersion(version) {
+      message = BackupMessage(
         title: String(localized: .backupImportAlertOpenFailedTitle),
         text: String(localized: .backupImportAlertUnsupportedVersionMessage(version))
       )
     } catch {
-      message = Message(
+      message = BackupMessage(
         title: String(localized: .backupImportAlertOpenFailedTitle),
         text: String(localized: .backupImportAlertUnreadableMessage)
       )
@@ -100,15 +97,21 @@ private struct BackupSupport: ViewModifier {
     do {
       try BackupService.restore(backup, into: context)
       restoreCount += 1
-      message = Message(
+      message = BackupMessage(
         title: String(localized: .backupImportAlertRestoredTitle),
         text: String(localized: .backupImportAlertRestoredMessage(Fmt.date(backup.exportedAt)))
       )
     } catch {
-      message = Message(
+      message = BackupMessage(
         title: String(localized: .backupImportAlertRestoreFailedTitle),
         text: String(localized: .backupImportAlertRestoreFailedMessage)
       )
     }
   }
+}
+
+private struct BackupMessage: Identifiable {
+  let id = UUID()
+  let title: String
+  let text: String
 }

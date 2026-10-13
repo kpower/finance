@@ -17,44 +17,44 @@ struct CBRXMLProvider: RateProvider {
     if let range = text.range(of: #"encoding="[^"]*""#, options: .regularExpression) {
       text.replaceSubrange(range, with: #"encoding="UTF-8""#)
     }
-    let delegate = Delegate()
+    let delegate = RatesXMLDelegate()
     let parser = XMLParser(data: Data(text.utf8))
     unsafe parser.delegate = delegate
     guard parser.parse() else { throw RateFetchError.malformed }
     return delegate.values
   }
+}
 
-  private final class Delegate: NSObject, XMLParserDelegate {
-    var values: [String: Double] = [:]
-    private var code = "", nominal = "", value = "", buffer = ""
+private final class RatesXMLDelegate: NSObject, XMLParserDelegate {
+  var values: [String: Double] = [:]
+  private var code = "", nominal = "", value = "", buffer = ""
 
-    func parser(
-      _ parser: XMLParser, didStartElement name: String, namespaceURI: String?,
-      qualifiedName: String?, attributes: [String: String] = [:]
-    ) {
-      buffer = ""
-      if name == "Valute" { code = ""; nominal = ""; value = "" }
-    }
+  func parser(
+    _ parser: XMLParser, didStartElement name: String, namespaceURI: String?,
+    qualifiedName: String?, attributes: [String: String] = [:]
+  ) {
+    buffer = ""
+    if name == "Valute" { code = ""; nominal = ""; value = "" }
+  }
 
-    func parser(_ parser: XMLParser, foundCharacters string: String) {
-      buffer += string
-    }
+  func parser(_ parser: XMLParser, foundCharacters string: String) {
+    buffer += string
+  }
 
-    func parser(_ parser: XMLParser, didEndElement name: String, namespaceURI: String?, qualifiedName: String?) {
-      let text = buffer.trimmingCharacters(in: .whitespacesAndNewlines)
-      switch name {
-      case "CharCode": code = text
-      case "Nominal": nominal = text
-      case "Value": value = text
-      case "Valute":
-        if let v = Double(value.replacingOccurrences(of: ",", with: ".")),
-          let n = Double(nominal.replacingOccurrences(of: ",", with: ".")), n > 0
-        {
-          values[code] = v / n
-        }
-      default: break
+  func parser(_ parser: XMLParser, didEndElement name: String, namespaceURI: String?, qualifiedName: String?) {
+    let text = buffer.trimmingCharacters(in: .whitespacesAndNewlines)
+    switch name {
+    case "CharCode": code = text
+    case "Nominal": nominal = text
+    case "Value": value = text
+    case "Valute":
+      if let v = Double(value.replacingOccurrences(of: ",", with: ".")),
+        let n = Double(nominal.replacingOccurrences(of: ",", with: ".")), n > 0
+      {
+        values[code] = v / n
       }
-      buffer = ""
+    default: break
     }
+    buffer = ""
   }
 }
