@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// App settings: the source rates are fetched from in Deposits and History.
+/// App settings: the source rates are fetched from.
 struct SettingsView: View {
   @AppStorage(RateSource.selectionKey) private var selectedProvider = RateSource.cbrXML
 

@@ -5,13 +5,24 @@ struct HistoryView: View {
   @Environment(\.modelContext) private var context
   @Query(sort: \Snapshot.date) private var snapshots: [Snapshot]
 
-  @State private var path: [PersistentIdentifier] = []
+  @State private var path: [HistoryRoute] = []
   @State private var selection: Set<PersistentIdentifier> = []
   @State private var pendingDelete: Set<PersistentIdentifier> = []
   @State private var isAddingArchive = false
   @SceneStorage("historyColumns") private var customization = TableColumnCustomization<HistoryRow>()
 
   private var rows: [HistoryRow] { HistoryCalculator.rows(for: snapshots).reversed() }
+
+  /// Deposits of the latest detailed entry, which a new entry starts from; empty when there is none.
+  private var latestDeposits: [DepositRecord] {
+    for snapshot in snapshots.reversed() {
+      switch snapshot.kind {
+      case .detailed: return snapshot.items
+      case .summaryOnly: continue
+      }
+    }
+    return []
+  }
 
   var body: some View {
     NavigationStack(path: $path) {
@@ -21,6 +32,9 @@ struct HistoryView: View {
             Label { Text(.historyEmptyTitle) } icon: { Image(systemName: "clock.arrow.circlepath") }
           } description: {
             Text(.historyEmptyDescription)
+          } actions: {
+            Button { path.append(.newEntry) } label: { Text(.historyEmptyAddButton) }
+              .buttonStyle(.borderedProminent)
           }
         } else {
           VSplitView {
@@ -33,6 +47,10 @@ struct HistoryView: View {
       }
       .navigationTitle(Text(.historyNavigationTitle))
       .toolbar {
+        Button { path.append(.newEntry) } label: {
+          Label { Text(.historyToolbarAddEntryButton) } icon: { Image(systemName: "plus") }
+        }
+        .help(Text(.historyToolbarAddEntryHelp))
         Button { isAddingArchive = true } label: {
           Label { Text(.historyToolbarAddArchiveButton) } icon: { Image(systemName: "archivebox") }
         }
@@ -41,12 +59,17 @@ struct HistoryView: View {
       .sheet(isPresented: $isAddingArchive) {
         ArchiveEntrySheet()
       }
-      .navigationDestination(for: PersistentIdentifier.self) { id in
-        if let snapshot = snapshots.first(where: { $0.persistentModelID == id }) {
-          SnapshotDetailView(snapshot: snapshot)
-        } else {
-          ContentUnavailableView {
-            Label { Text(.historyDetailDeletedTitle) } icon: { Image(systemName: "trash") }
+      .navigationDestination(for: HistoryRoute.self) { route in
+        switch route {
+        case .newEntry:
+          SnapshotDetailView(newEntryWith: latestDeposits)
+        case .entry(let id):
+          if let snapshot = snapshots.first(where: { $0.persistentModelID == id }) {
+            SnapshotDetailView(snapshot: snapshot)
+          } else {
+            ContentUnavailableView {
+              Label { Text(.historyDetailDeletedTitle) } icon: { Image(systemName: "trash") }
+            }
           }
         }
       }
@@ -157,13 +180,13 @@ struct HistoryView: View {
     }
     .contextMenu(forSelectionType: PersistentIdentifier.self) { ids in
       if let id = ids.first, ids.count == 1 {
-        Button { path.append(id) } label: { Text(.historyContextMenuOpenButton) }
+        Button { path.append(.entry(id)) } label: { Text(.historyContextMenuOpenButton) }
       }
       if !ids.isEmpty {
         Button(role: .destructive) { pendingDelete = ids } label: { Text(.historyContextMenuDeleteButton) }
       }
     } primaryAction: { ids in
-      if let id = ids.first { path.append(id) }
+      if let id = ids.first { path.append(.entry(id)) }
     }
   }
 
@@ -175,6 +198,13 @@ struct HistoryView: View {
     selection.subtract(ids)
     pendingDelete = []
   }
+}
+
+/// Screens pushed over the history table.
+private enum HistoryRoute: Hashable {
+  case entry(PersistentIdentifier)
+  /// A detailed entry that does not exist until it is saved from its screen.
+  case newEntry
 }
 
 private enum Cell {

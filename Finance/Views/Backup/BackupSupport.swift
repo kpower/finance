@@ -16,6 +16,7 @@ private struct BackupSupport: ViewModifier {
   @State private var isImporting = false
   @State private var pendingRestore: Backup?
   @State private var message: Message?
+  @State private var restoreCount = 0
 
   private struct Message: Identifiable {
     let id = UUID()
@@ -25,6 +26,9 @@ private struct BackupSupport: ViewModifier {
 
   func body(content: Content) -> some View {
     content
+      // A restore replaces every stored entry, so the window starts over
+      // instead of keeping screens that hold the old ones.
+      .id(restoreCount)
       .focusedSceneValue(\.backupActions, BackupActions(export: export, restore: { isImporting = true }))
       .fileExporter(
         isPresented: Binding(get: { exportDocument != nil }, set: { if !$0 { exportDocument = nil } }),
@@ -51,9 +55,7 @@ private struct BackupSupport: ViewModifier {
         Button(role: .destructive) { restore(backup) } label: { Text(.backupRestoreDialogReplaceButton) }
         Button(role: .cancel) {} label: { Text(.backupRestoreDialogCancelButton) }
       } message: { backup in
-        Text(.backupRestoreDialogMessage(
-          Fmt.date(backup.exportedAt), backup.deposits.count, backup.snapshots.count
-        ))
+        Text(.backupRestoreDialogMessage(Fmt.date(backup.exportedAt), backup.snapshots.count))
       }
       .alert(item: $message) { message in
         Alert(title: Text(message.title), message: Text(message.text), dismissButton: .default(Text(.backupAlertOkButton)))
@@ -97,6 +99,7 @@ private struct BackupSupport: ViewModifier {
   private func restore(_ backup: Backup) {
     do {
       try BackupService.restore(backup, into: context)
+      restoreCount += 1
       message = Message(
         title: String(localized: .backupImportAlertRestoredTitle),
         text: String(localized: .backupImportAlertRestoredMessage(Fmt.date(backup.exportedAt)))

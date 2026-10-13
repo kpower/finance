@@ -3,26 +3,13 @@ import Foundation
 /// Backup file contents. Independent from the SwiftData models so the stored schema
 /// can evolve without breaking old files; bump `currentVersion` on incompatible changes.
 struct Backup: Codable {
-  /// 3: every snapshot states the source and the day of its rates. Older files do not load.
-  static let currentVersion = 3
+  /// 4: history entries only. Version 3 files load too, their separate list of deposits is ignored.
+  /// Older files do not load.
+  static let currentVersion = 4
 
   var version = Backup.currentVersion
   var exportedAt = Date.now
-  var deposits: [DepositEntry]
   var snapshots: [SnapshotEntry]
-
-  struct DepositEntry: Codable {
-    let name: String
-    let bank: String
-    let amountRUB: Double?
-    let amountUSD: Double?
-    let amountEUR: Double?
-    let interestRate: Double?
-    let termMonths: Int?
-    let openDate: Date?
-    let closeDate: Date?
-    let createdAt: Date
-  }
 
   struct SnapshotEntry: Codable {
     let date: Date

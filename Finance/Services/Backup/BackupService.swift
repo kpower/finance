@@ -6,17 +6,8 @@ enum BackupService {
   // MARK: Export
 
   static func makeBackup(from context: ModelContext) throws -> Backup {
-    let deposits = try context.fetch(FetchDescriptor<Deposit>(sortBy: [SortDescriptor(\.createdAt)]))
     let snapshots = try context.fetch(FetchDescriptor<Snapshot>(sortBy: [SortDescriptor(\.date)]))
     return Backup(
-      deposits: deposits.map {
-        Backup.DepositEntry(
-          name: $0.name, bank: $0.bank,
-          amountRUB: $0.amountRUB, amountUSD: $0.amountUSD, amountEUR: $0.amountEUR,
-          interestRate: $0.interestRate, termMonths: $0.termMonths,
-          openDate: $0.openDate, closeDate: $0.closeDate, createdAt: $0.createdAt
-        )
-      },
       snapshots: snapshots.map {
         Backup.SnapshotEntry(
           date: $0.date, kind: $0.kind, usdRate: $0.usdRate, eurRate: $0.eurRate,
@@ -47,17 +38,7 @@ enum BackupService {
 
   /// Replaces everything in the store with the backup's contents.
   static func restore(_ backup: Backup, into context: ModelContext) throws {
-    try context.fetch(FetchDescriptor<Deposit>()).forEach(context.delete)
     try context.fetch(FetchDescriptor<Snapshot>()).forEach(context.delete)
-
-    for entry in backup.deposits {
-      context.insert(Deposit(
-        name: entry.name, bank: entry.bank,
-        amountRUB: entry.amountRUB, amountUSD: entry.amountUSD, amountEUR: entry.amountEUR,
-        interestRate: entry.interestRate, termMonths: entry.termMonths,
-        openDate: entry.openDate, closeDate: entry.closeDate, createdAt: entry.createdAt
-      ))
-    }
     for entry in backup.snapshots {
       let rates = Rates(
         usd: entry.usdRate, eur: entry.eurRate, date: entry.ratesRequestedFor, source: entry.ratesSource)

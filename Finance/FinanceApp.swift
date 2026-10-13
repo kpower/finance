@@ -7,7 +7,7 @@ struct FinanceApp: App {
     // Explicit id: the window frame is autosaved under a key built from it. Without one the key
     // comes from the root view's type name, which is not stable across launches.
     WindowGroup(id: "main") {
-      MainView()
+      HistoryView()
         .backupSupport()
         .frame(minWidth: 900, minHeight: 500)
     }

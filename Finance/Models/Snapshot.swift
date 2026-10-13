@@ -1,13 +1,13 @@
 import Foundation
 import SwiftData
 
-/// State of all deposits and rates saved on a given day (History section).
+/// A history entry: all deposits and the rates on a given day.
 @Model
-final class Snapshot {
+final class Snapshot: SnapshotAmounts {
   enum Kind: String, Codable, Sendable {
-    /// Saved from the deposits table: per-deposit details in `items`.
+    /// Per-deposit details in `items`.
     case detailed
-    /// Archive entry entered by hand: only currency totals, no per-deposit details.
+    /// Archive entry: only currency totals, no per-deposit details.
     case summaryOnly
   }
 
@@ -79,31 +79,6 @@ final class Snapshot {
       ratesRequestedFor = Calendar.current.startOfDay(for: newValue.date)
     }
   }
-
-  // MARK: Totals
-
-  var sumRUB: Double {
-    switch kind {
-    case .summaryOnly: summaryRUB
-    case .detailed: items.reduce(0) { $0 + ($1.amountRUB ?? 0) }
-    }
-  }
-
-  var sumUSD: Double {
-    switch kind {
-    case .summaryOnly: summaryUSD
-    case .detailed: items.reduce(0) { $0 + ($1.amountUSD ?? 0) }
-    }
-  }
-
-  var sumEUR: Double {
-    switch kind {
-    case .summaryOnly: summaryEUR
-    case .detailed: items.reduce(0) { $0 + ($1.amountEUR ?? 0) }
-    }
-  }
-
-  var totalRUB: Double { sumRUB + sumUSD * usdRate + sumEUR * eurRate }
 
   var ratesNeedAttention: Bool { rates.needAttention(on: date) }
 

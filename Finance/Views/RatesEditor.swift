@@ -1,8 +1,7 @@
 import Foundation
 import SwiftUI
 
-/// USD/EUR rates typed by hand or fetched for a date: rates of a history entry,
-/// or the rates the Deposits section totals with.
+/// USD/EUR rates of a history entry, typed by hand or fetched for its date.
 struct RatesEditor: View {
   /// Day the rates are for; fetching asks the source for this day.
   let date: Date
