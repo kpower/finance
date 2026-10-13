@@ -12,12 +12,13 @@ struct SavingsEntryDraft: Equatable {
 }
 
 extension SavingsEntryDraft {
-  init(_ entry: SavingsEntry) {
-    self.init(date: entry.date, grossMonthly: entry.grossMonthly, expenses: entry.expenses, comment: entry.comment)
+  init(_ values: SavingsEntryValues) {
+    self.init(
+      date: values.date, grossMonthly: values.grossMonthly, expenses: values.expenses, comment: values.comment)
   }
 
   /// An entry for today that is not stored yet, with the income and expenses of `latest`.
-  static func newEntry(after latest: SavingsEntry?) -> SavingsEntryDraft {
+  static func newEntry(after latest: SavingsEntryValues?) -> SavingsEntryDraft {
     SavingsEntryDraft(
       date: Calendar.current.startOfDay(for: .now), grossMonthly: latest?.grossMonthly,
       expenses: latest?.expenses ?? [], comment: ""

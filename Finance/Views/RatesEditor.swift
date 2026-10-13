@@ -8,7 +8,7 @@ struct RatesEditor: View {
   let rates: Rates?
   let onChange: (Rates) -> Void
 
-  @AppStorage(RateSource.selectionKey) private var selectedProvider = RateSource.cbrXML
+  @SelectedRateProvider private var provider: RateSource
   /// Values in the fields. They become rates only once both are filled in.
   @State private var usd: Double?
   @State private var eur: Double?
@@ -53,7 +53,6 @@ struct RatesEditor: View {
   }
 
   @ViewBuilder private var fetchButton: some View {
-    let provider = selectedProvider.availableOrFirst
     if isLoading {
       ProgressView().controlSize(.small)
     } else {
@@ -81,7 +80,6 @@ struct RatesEditor: View {
   }
 
   private func fetch() {
-    let provider = selectedProvider.availableOrFirst
     let day = date
     errorMessage = nil
     isLoading = true

@@ -11,6 +11,8 @@ struct InflationSettingsView: View {
   @State private var isAdding = false
   @State private var editing: AnnualInflation?
 
+  private var rows: [Stored<AnnualInflationValues>] { years.map { Stored($0) } }
+
   private var selectedYear: AnnualInflation? {
     selection.count == 1 ? years.first { selection.contains($0.persistentModelID) } : nil
   }
@@ -31,7 +33,7 @@ struct InflationSettingsView: View {
     }
     .padding(20)
     .sheet(isPresented: $isAdding) {
-      InflationYearSheet(addingAfter: years.first)
+      InflationYearSheet(addingAfter: rows.first?.values)
     }
     .sheet(item: $editing) { year in
       InflationYearSheet(editing: year)
@@ -48,12 +50,12 @@ struct InflationSettingsView: View {
   }
 
   private var table: some View {
-    Table(years, selection: $selection) {
-      TableColumn(Text(.inflationFormYearLabel)) { year in
-        Text(verbatim: String(year.year)).monospacedDigit()
+    Table(rows, selection: $selection) {
+      TableColumn(Text(.inflationFormYearLabel)) { row in
+        Text(verbatim: String(row.values.year)).monospacedDigit()
       }
-      TableColumn(Text(.inflationFormPercentLabel)) { year in
-        Text(Fmt.percent(year.percent)).monospacedDigit()
+      TableColumn(Text(.inflationFormPercentLabel)) { row in
+        Text(Fmt.percent(row.values.percent)).monospacedDigit()
       }
       .alignment(.trailing)
     }

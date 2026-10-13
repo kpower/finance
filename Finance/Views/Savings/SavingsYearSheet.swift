@@ -13,14 +13,14 @@ struct SavingsYearSheet: View {
   /// Copied from the latest year; edited in the table once the year is added.
   private let higherTaxBrackets: [TaxBracket]
 
-  init(after latest: SavingsYear?) {
+  init(after latest: SavingsYearValues?) {
     _year = State(initialValue: latest.map { $0.year + 1 })
     _lifeLevelUp = State(initialValue: latest?.lifeLevelUp)
     _baseTaxRate = State(initialValue: latest?.baseTaxRate)
     higherTaxBrackets = latest?.higherTaxBrackets ?? []
   }
 
-  private var isYearTaken: Bool { years.contains { $0.year == year } }
+  private var isYearTaken: Bool { years.contains { SavingsYearValues($0).year == year } }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 16) {
@@ -78,10 +78,10 @@ struct SavingsYearSheet: View {
 
   private func save() {
     guard let year, let lifeLevelUp, let baseTaxRate else { return }
-    context.insert(SavingsYear(
+    context.insert(SavingsYear(SavingsYearValues(
       year: year, lifeLevelUp: lifeLevelUp, baseTaxRate: baseTaxRate,
       higherTaxBrackets: higherTaxBrackets
-    ))
+    )))
     try? context.save()
     dismiss()
   }

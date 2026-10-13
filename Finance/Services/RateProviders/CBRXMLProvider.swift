@@ -1,13 +1,13 @@
 import Foundation
 
 /// https://www.cbr.ru/scripts/XML_daily.asp — official Bank of Russia rates, windows-1251 XML, decimal comma.
-struct CBRXMLProvider: RateProvider {
-  func fetch(on date: Date) async throws -> Rates {
+enum CBRXMLProvider {
+  static func fetch(on date: Date) async throws -> Rates {
     var components = URLComponents(string: "https://www.cbr.ru/scripts/XML_daily.asp")!
-    components.queryItems = [URLQueryItem(name: "date_req", value: Self.dateFormatter("dd/MM/yyyy").string(from: date))]
-    let (data, status) = try await Self.download(components.url!)
+    components.queryItems = [URLQueryItem(name: "date_req", value: RateFetch.dateFormatter("dd/MM/yyyy").string(from: date))]
+    let (data, status) = try await RateFetch.download(components.url!)
     guard status == 200 else { throw RateFetchError.badStatus(status) }
-    return try Self.makeRates(Self.parse(data), date: date, source: .cbrXML)
+    return try RateFetch.makeRates(parse(data), date: date, source: .cbrXML)
   }
 
   /// "Currency code → RUB per unit".

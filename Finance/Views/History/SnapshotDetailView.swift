@@ -13,21 +13,21 @@ struct SnapshotDetailView: View {
   /// What the draft is compared with: the stored values, or what a new entry started from.
   @State private var saved: SnapshotDraft
   @State private var draft: SnapshotDraft
-  @State private var selection = Set<DepositRecord.ID>()
+  @State private var selection = Set<Deposit.ID>()
   @State private var isConfirmingClear = false
   @State private var isConfirmingExit = false
   @State private var isSaveFailureShown = false
 
   init(snapshot: Snapshot) {
-    let draft = SnapshotDraft(snapshot)
+    let draft = SnapshotDraft(SnapshotValues(snapshot))
     _stored = State(initialValue: snapshot)
     _saved = State(initialValue: draft)
     _draft = State(initialValue: draft)
   }
 
-  /// A new detailed entry that starts from `items`.
-  init(newEntryWith items: [DepositRecord]) {
-    let draft = SnapshotDraft.newEntry(items: items)
+  /// A new detailed entry that starts from `deposits`.
+  init(newEntryWith deposits: [Deposit]) {
+    let draft = SnapshotDraft.newEntry(deposits: deposits)
     _stored = State(initialValue: nil)
     _saved = State(initialValue: draft)
     _draft = State(initialValue: draft)
@@ -37,10 +37,10 @@ struct SnapshotDetailView: View {
     VStack(spacing: 0) {
       header
       Divider()
-      switch draft.kind {
+      switch draft.content.kind {
       case .detailed:
         DepositsEditorTable(
-          items: $draft.items, saved: saved.items, rates: draft.rates,
+          items: deposits, saved: saved.content.deposits, rates: draft.rates,
           selection: $selection, onAdd: addDeposit, onDeleteSelected: deleteSelectedDeposits
         )
       case .summaryOnly:
@@ -60,7 +60,7 @@ struct SnapshotDetailView: View {
         }
       }
       ToolbarItemGroup {
-        switch draft.kind {
+        switch draft.content.kind {
         case .detailed: depositButtons
         case .summaryOnly: EmptyView()
         }
@@ -102,7 +102,7 @@ struct SnapshotDetailView: View {
 
   private var title: Text {
     guard stored != nil else { return Text(.historyDetailNewTitle) }
-    switch saved.kind {
+    switch saved.content.kind {
     case .detailed: return Text(.historyDetailDepositsTitle(Fmt.date(saved.date)))
     case .summaryOnly: return Text(.historyDetailArchiveTitle(Fmt.date(saved.date)))
     }
@@ -115,10 +115,18 @@ struct SnapshotDetailView: View {
   private var validation: SnapshotValidation {
     if SnapshotService.isDayTaken(draft.date, excluding: stored, in: context) { return .blocked(.dayTaken) }
     guard let rates = draft.rates else { return .blocked(.noRates) }
-    switch draft.kind {
-    case .detailed: return draft.items.isEmpty ? .blocked(.noDeposits) : .ready(rates)
-    case .summaryOnly: return .ready(rates)
+    switch draft.content {
+    case let .detailed(deposits):
+      if deposits.isEmpty { return .blocked(.noDeposits) }
+    case .summaryOnly:
+      break
     }
+    return .ready(
+      SnapshotValues(
+        date: draft.date, rates: rates, content: draft.content,
+        comment: draft.comment.trimmingCharacters(in: .whitespacesAndNewlines)
+      )
+    )
   }
 
   /// A new entry can be saved as it started; a stored one only when something changed.
@@ -133,29 +141,18 @@ struct SnapshotDetailView: View {
   @discardableResult
   private func save() -> Bool {
     switch validation {
-    case let .ready(rates): save(rates: rates)
+    case let .ready(values): save(values)
     case .blocked: false
     }
   }
 
-  private func save(rates: Rates) -> Bool {
-    let comment = draft.comment.trimmingCharacters(in: .whitespacesAndNewlines)
+  private func save(_ values: SnapshotValues) -> Bool {
     let snapshot: Snapshot
     if let stored {
-      stored.move(to: draft.date)
-      stored.rates = rates
-      stored.comment = comment
-      stored.items = draft.items
-      stored.summaryRUB = draft.summaryRUB
-      stored.summaryUSD = draft.summaryUSD
-      stored.summaryEUR = draft.summaryEUR
+      stored.update(from: values)
       snapshot = stored
     } else {
-      snapshot = Snapshot(
-        date: draft.date, rates: rates, kind: draft.kind, items: draft.items,
-        summaryRUB: draft.summaryRUB, summaryUSD: draft.summaryUSD, summaryEUR: draft.summaryEUR,
-        comment: comment
-      )
+      snapshot = Snapshot(values)
       context.insert(snapshot)
     }
     do {
@@ -166,7 +163,8 @@ struct SnapshotDetailView: View {
       return false
     }
     stored = snapshot
-    saved = SnapshotDraft(snapshot)
+    // Not read back from the store: the deposits would come with other ids and lose their rows.
+    saved = SnapshotDraft(values)
     draft = saved
     return true
   }
@@ -184,26 +182,41 @@ struct SnapshotDetailView: View {
     Button { isConfirmingClear = true } label: {
       Label { Text(.historyDetailToolbarClearAllButton) } icon: { Image(systemName: "clear") }
     }
-    .disabled(draft.items.isEmpty)
+    .disabled(draft.content.deposits.isEmpty)
+  }
+
+  private var deposits: Binding<[Deposit]> {
+    Binding(get: { draft.content.deposits }, set: { newValue in updateDeposits { $0 = newValue } })
+  }
+
+  /// Changes the deposits of a detailed draft; an archive one has none to change.
+  private func updateDeposits(_ change: (inout [Deposit]) -> Void) {
+    switch draft.content {
+    case var .detailed(deposits):
+      change(&deposits)
+      draft.content = .detailed(deposits)
+    case .summaryOnly:
+      break
+    }
   }
 
   private func addDeposit() {
     // A blank row for the user to fill in.
-    let deposit = DepositRecord(
+    let deposit = Deposit(
       name: "", bank: "", amountRUB: nil, amountUSD: nil, amountEUR: nil,
       interestRate: nil, termMonths: nil, openDate: nil, closeDate: nil
     )
-    draft.items.append(deposit)
+    updateDeposits { $0.append(deposit) }
     selection = [deposit.id]
   }
 
   private func deleteSelectedDeposits() {
-    draft.items.removeAll { selection.contains($0.id) }
+    updateDeposits { $0.removeAll { selection.contains($0.id) } }
     selection = []
   }
 
   private func clearDeposits() {
-    draft.items = []
+    updateDeposits { $0 = [] }
     selection = []
   }
 
@@ -289,20 +302,34 @@ struct SnapshotDetailView: View {
   // MARK: Content
 
   private var summaryNote: some View {
-    ContentUnavailableView {
+    let savedTotals = saved.content.sums
+    return ContentUnavailableView {
       Label { Text(.historyDetailSummaryOnlyTitle) } icon: { Image(systemName: "archivebox") }
     } description: {
       Text(.historyDetailSummaryOnlyDescription)
     } actions: {
       HStack(spacing: 20) {
-        sumField("₽", value: $draft.summaryRUB, isChanged: draft.summaryRUB != saved.summaryRUB)
-        sumField("$", value: $draft.summaryUSD, isChanged: draft.summaryUSD != saved.summaryUSD)
-        sumField("€", value: $draft.summaryEUR, isChanged: draft.summaryEUR != saved.summaryEUR)
+        sumField("₽", value: totals.rub, isChanged: totals.wrappedValue.rub != savedTotals.rub)
+        sumField("$", value: totals.usd, isChanged: totals.wrappedValue.usd != savedTotals.usd)
+        sumField("€", value: totals.eur, isChanged: totals.wrappedValue.eur != savedTotals.eur)
       }
     }
     // Fills the space between header and footer. Not `fixedSize`: measured at zero width its text
     // wraps one letter per line, and that height pushed the header and footer out of the window.
     .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  /// Totals of an archive draft; a detailed one has its deposits instead.
+  private var totals: Binding<CurrencyAmounts> {
+    Binding(
+      get: { draft.content.sums },
+      set: { newValue in
+        switch draft.content {
+        case .detailed: break
+        case .summaryOnly: draft.content = .summaryOnly(newValue)
+        }
+      }
+    )
   }
 
   private func sumField(_ title: String, value: Binding<Double>, isChanged: Bool) -> some View {
@@ -320,16 +347,17 @@ struct SnapshotDetailView: View {
   // MARK: Footer
 
   private var footer: some View {
-    HStack(alignment: .firstTextBaseline, spacing: 24) {
+    let sums = draft.content.sums
+    return HStack(alignment: .firstTextBaseline, spacing: 24) {
       status
       Spacer()
-      sum("Σ ₽", Fmt.money(draft.sumRUB))
-      sum("Σ $", Fmt.money(draft.sumUSD))
-      sum("Σ €", Fmt.money(draft.sumEUR))
+      sum("Σ ₽", Fmt.money(sums.rub))
+      sum("Σ $", Fmt.money(sums.usd))
+      sum("Σ €", Fmt.money(sums.eur))
       VStack(alignment: .trailing, spacing: 2) {
         Text(.historyDetailFooterTotalRubLabel).font(.caption).foregroundStyle(.secondary)
         if let rates = draft.rates {
-          Text(Fmt.money(draft.totalRUB(at: rates))).font(.title3.weight(.semibold)).monospacedDigit()
+          Text(Fmt.money(sums.totalRUB(at: rates))).font(.title3.weight(.semibold)).monospacedDigit()
         } else {
           Text(.historyDetailFooterNoRateLabel).font(.title3).foregroundStyle(.secondary)
         }
@@ -351,7 +379,7 @@ struct SnapshotDetailView: View {
         Text(.historyDetailStatusNew).foregroundStyle(.secondary)
       } else if hasUnsavedChanges {
         // Removed deposits have no row left to highlight, so they are counted here.
-        let removed = saved.items.count { item in !draft.items.contains { $0.id == item.id } }
+        let removed = saved.content.deposits.count { deposit in !draft.content.deposits.contains { $0.id == deposit.id } }
         Text(removed == 0 ? LocalizedStringResource.historyDetailStatusUnsaved : .historyDetailStatusUnsavedRemoved(removed))
           .padding(.horizontal, 6)
           .padding(.vertical, 2)
@@ -369,7 +397,7 @@ struct SnapshotDetailView: View {
 }
 
 private enum SnapshotValidation {
-  case ready(Rates)
+  case ready(SnapshotValues)
   case blocked(SnapshotSaveBlocker)
 }
 

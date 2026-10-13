@@ -1,9 +1,10 @@
 import Foundation
 
 /// A deposit or account as it was on the day of a history entry.
-struct DepositRecord: Codable, Hashable, Identifiable, Sendable {
-  /// Kept when a new entry is started from the deposits of an older one.
-  var id = UUID()
+struct Deposit: Hashable, Identifiable, Sendable {
+  /// Tells the rows of a screen apart and nothing else: it is not stored, so a deposit read
+  /// from the store again has another one.
+  let id = UUID()
   var name: String
   var bank: String
   var amountRUB: Double?
@@ -18,7 +19,7 @@ struct DepositRecord: Codable, Hashable, Identifiable, Sendable {
 
 // MARK: - Amounts
 
-extension DepositRecord {
+extension Deposit {
   func totalRUB(at rates: Rates) -> Double {
     (amountRUB ?? 0) + (amountUSD ?? 0) * rates.usd + (amountEUR ?? 0) * rates.eur
   }
@@ -30,7 +31,7 @@ extension DepositRecord {
 
 // MARK: - Close date
 
-extension DepositRecord {
+extension Deposit {
   /// Deposits are usually paid out the day after the term ends.
   private static let closeDateExtraDays = 1
 

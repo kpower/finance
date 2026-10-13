@@ -1,28 +1,22 @@
 import Foundation
 import SwiftData
 
-/// A history entry: all deposits and the rates on a given day.
+/// A stored history entry: all deposits, or only their currency totals, and the rates on a given day.
 @Model
-final class Snapshot: SnapshotAmounts {
-  enum Kind: String, Codable, Sendable {
-    /// Per-deposit details in `items`.
-    case detailed
-    /// Archive entry: only currency totals, no per-deposit details.
-    case summaryOnly
-  }
-
+final class Snapshot {
   /// Start of the day the snapshot belongs to: its key, one snapshot per day.
   @Attribute(.unique) var date: Date
   var usdRate: Double
   var eurRate: Double
-  var ratesSource: RateSource
-  /// Day the rates are for (`Rates.date`). Differs from `date` after the snapshot's date has been changed.
+  /// Stored identifier of where the rates came from.
+  var ratesSource: String
+  /// Start of the day the rates are for. Differs from `date` after the snapshot's date has been changed.
   var ratesRequestedFor: Date
-  /// Per-deposit details of a `.detailed` snapshot; empty for `.summaryOnly`.
+  /// Stored identifier of what the snapshot holds: per-deposit details in `items` or the totals in `summary…`.
+  var kind: String
+  /// Empty for a snapshot that holds only totals.
   var items: [DepositRecord]
-  /// Stored as a raw value so existing stores migrate without a custom schema.
-  private var kindRaw: String
-  /// Totals of a `.summaryOnly` snapshot; unused for `.detailed`.
+  /// Zero for a snapshot that holds per-deposit details.
   var summaryRUB: Double
   var summaryUSD: Double
   var summaryEUR: Double
@@ -30,60 +24,41 @@ final class Snapshot: SnapshotAmounts {
 
   init(
     date: Date,
-    rates: Rates,
-    kind: Kind,
+    usdRate: Double,
+    eurRate: Double,
+    ratesSource: String,
+    ratesRequestedFor: Date,
+    kind: String,
     items: [DepositRecord],
     summaryRUB: Double,
     summaryUSD: Double,
     summaryEUR: Double,
     comment: String
   ) {
-    self.date = Calendar.current.startOfDay(for: date)
-    self.usdRate = rates.usd
-    self.eurRate = rates.eur
-    self.ratesSource = rates.source
-    self.ratesRequestedFor = Calendar.current.startOfDay(for: rates.date)
+    self.date = date
+    self.usdRate = usdRate
+    self.eurRate = eurRate
+    self.ratesSource = ratesSource
+    self.ratesRequestedFor = ratesRequestedFor
+    self.kind = kind
     self.items = items
-    self.kindRaw = kind.rawValue
     self.summaryRUB = summaryRUB
     self.summaryUSD = summaryUSD
     self.summaryEUR = summaryEUR
     self.comment = comment
   }
+}
 
-  convenience init(date: Date, rates: Rates, items: [DepositRecord]) {
-    self.init(
-      date: date, rates: rates, kind: .detailed, items: items,
-      summaryRUB: 0, summaryUSD: 0, summaryEUR: 0, comment: ""
-    )
-  }
-
-  convenience init(date: Date, rates: Rates, rub: Double, usd: Double, eur: Double, comment: String) {
-    self.init(
-      date: date, rates: rates, kind: .summaryOnly, items: [],
-      summaryRUB: rub, summaryUSD: usd, summaryEUR: eur, comment: comment
-    )
-  }
-
-  var kind: Kind {
-    get { Kind(rawValue: kindRaw) ?? .detailed }
-    set { kindRaw = newValue.rawValue }
-  }
-
-  var rates: Rates {
-    get { Rates(usd: usdRate, eur: eurRate, date: ratesRequestedFor, source: ratesSource) }
-    set {
-      usdRate = newValue.usd
-      eurRate = newValue.eur
-      ratesSource = newValue.source
-      ratesRequestedFor = Calendar.current.startOfDay(for: newValue.date)
-    }
-  }
-
-  var ratesNeedAttention: Bool { rates.needAttention(on: date) }
-
-  /// Moves the snapshot to another day; its rates stay the ones of the day they were obtained for.
-  func move(to newDate: Date) {
-    date = Calendar.current.startOfDay(for: newDate)
-  }
+/// A deposit or account as it was on the day of a snapshot.
+struct DepositRecord: Codable {
+  let name: String
+  let bank: String
+  let amountRUB: Double?
+  let amountUSD: Double?
+  let amountEUR: Double?
+  /// Annual interest rate in percent (18.5 means 18.5%). Nil for non-deposit accounts.
+  let interestRate: Double?
+  let termMonths: Int?
+  let openDate: Date?
+  let closeDate: Date?
 }

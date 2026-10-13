@@ -11,14 +11,6 @@ struct SavingsRow: Identifiable {
   let outcome: SavingsOutcome
 }
 
-/// What the calculation takes from an entry, stored or still being edited.
-struct SavingsInput {
-  /// Start of the entry's day.
-  let date: Date
-  let grossMonthly: Double
-  let expensesTotal: Double
-}
-
 enum SavingsOutcome {
   case figures(SavingsFigures)
   case missing(SavingsGap)

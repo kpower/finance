@@ -9,9 +9,9 @@ final class SavingsYear {
   var lifeLevelUp: Double
   /// Income tax rate in percent for income below every threshold of `higherTaxBrackets`.
   var baseTaxRate: Double
-  var higherTaxBrackets: [TaxBracket]
+  var higherTaxBrackets: [TaxBracketRecord]
 
-  init(year: Int, lifeLevelUp: Double, baseTaxRate: Double, higherTaxBrackets: [TaxBracket]) {
+  init(year: Int, lifeLevelUp: Double, baseTaxRate: Double, higherTaxBrackets: [TaxBracketRecord]) {
     self.year = year
     self.lifeLevelUp = lifeLevelUp
     self.baseTaxRate = baseTaxRate
@@ -20,10 +20,9 @@ final class SavingsYear {
 }
 
 /// A raised income tax rate for the part of income above a threshold.
-struct TaxBracket: Codable, Hashable, Identifiable, Sendable {
-  var id = UUID()
+struct TaxBracketRecord: Codable {
   /// Yearly income before tax the rate applies above.
-  var threshold: Double
+  let threshold: Double
   /// Percent (15 means 15%).
-  var rate: Double
+  let rate: Double
 }

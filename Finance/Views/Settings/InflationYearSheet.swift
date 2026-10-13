@@ -13,20 +13,21 @@ struct InflationYearSheet: View {
   @State private var percent: Double?
 
   /// A new year, the one after `latest`.
-  init(addingAfter latest: AnnualInflation?) {
+  init(addingAfter latest: AnnualInflationValues?) {
     stored = nil
     _year = State(initialValue: latest.map { $0.year + 1 })
     _percent = State(initialValue: nil)
   }
 
   init(editing stored: AnnualInflation) {
+    let values = AnnualInflationValues(stored)
     self.stored = stored
-    _year = State(initialValue: stored.year)
-    _percent = State(initialValue: stored.percent)
+    _year = State(initialValue: values.year)
+    _percent = State(initialValue: values.percent)
   }
 
   private var isYearTaken: Bool {
-    stored == nil && years.contains { $0.year == year }
+    stored == nil && years.contains { AnnualInflationValues($0).year == year }
   }
 
   var body: some View {
@@ -83,7 +84,7 @@ struct InflationYearSheet: View {
 
   private var title: Text {
     if let stored {
-      Text(.inflationFormEditTitle(String(stored.year)))
+      Text(.inflationFormEditTitle(String(AnnualInflationValues(stored).year)))
     } else {
       Text(.inflationFormAddTitle)
     }
@@ -91,10 +92,11 @@ struct InflationYearSheet: View {
 
   private func save() {
     guard let year, let percent else { return }
+    let values = AnnualInflationValues(year: year, percent: percent)
     if let stored {
-      stored.percent = percent
+      stored.update(from: values)
     } else {
-      context.insert(AnnualInflation(year: year, percent: percent))
+      context.insert(AnnualInflation(values))
     }
     try? context.save()
     dismiss()
