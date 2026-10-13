@@ -7,6 +7,9 @@ enum BackupService {
 
   static func makeBackup(from context: ModelContext) throws -> Backup {
     let snapshots = try context.fetch(FetchDescriptor<Snapshot>(sortBy: [SortDescriptor(\.date)]))
+    let savingsEntries = try context.fetch(FetchDescriptor<SavingsEntry>(sortBy: [SortDescriptor(\.date)]))
+    let savingsYears = try context.fetch(FetchDescriptor<SavingsYear>(sortBy: [SortDescriptor(\.year)]))
+    let inflation = try context.fetch(FetchDescriptor<AnnualInflation>(sortBy: [SortDescriptor(\.year)]))
     return Backup(
       snapshots: snapshots.map {
         Backup.SnapshotEntry(
@@ -15,7 +18,22 @@ enum BackupService {
           summaryRUB: $0.summaryRUB, summaryUSD: $0.summaryUSD, summaryEUR: $0.summaryEUR,
           comment: $0.comment.isEmpty ? nil : $0.comment
         )
-      }
+      },
+      savings: Backup.Savings(
+        entries: savingsEntries.map {
+          Backup.Savings.Entry(
+            date: $0.date, grossMonthly: $0.grossMonthly, expenses: $0.expenses,
+            comment: $0.comment.isEmpty ? nil : $0.comment
+          )
+        },
+        years: savingsYears.map {
+          Backup.Savings.Year(
+            year: $0.year, lifeLevelUp: $0.lifeLevelUp,
+            baseTaxRate: $0.baseTaxRate, higherTaxBrackets: $0.higherTaxBrackets
+          )
+        }
+      ),
+      inflation: inflation.map { Backup.Inflation(year: $0.year, percent: $0.percent) }
     )
   }
 
@@ -39,6 +57,9 @@ enum BackupService {
   /// Replaces everything in the store with the backup's contents.
   static func restore(_ backup: Backup, into context: ModelContext) throws {
     try context.fetch(FetchDescriptor<Snapshot>()).forEach(context.delete)
+    try context.fetch(FetchDescriptor<SavingsEntry>()).forEach(context.delete)
+    try context.fetch(FetchDescriptor<SavingsYear>()).forEach(context.delete)
+    try context.fetch(FetchDescriptor<AnnualInflation>()).forEach(context.delete)
     for entry in backup.snapshots {
       let rates = Rates(
         usd: entry.usdRate, eur: entry.eurRate, date: entry.ratesRequestedFor, source: entry.ratesSource)
@@ -47,6 +68,23 @@ enum BackupService {
         summaryRUB: entry.summaryRUB, summaryUSD: entry.summaryUSD, summaryEUR: entry.summaryEUR,
         comment: entry.comment ?? ""
       ))
+    }
+    if let savings = backup.savings {
+      for entry in savings.entries {
+        context.insert(SavingsEntry(
+          date: entry.date, grossMonthly: entry.grossMonthly, expenses: entry.expenses,
+          comment: entry.comment ?? ""
+        ))
+      }
+      for year in savings.years {
+        context.insert(SavingsYear(
+          year: year.year, lifeLevelUp: year.lifeLevelUp,
+          baseTaxRate: year.baseTaxRate, higherTaxBrackets: year.higherTaxBrackets
+        ))
+      }
+    }
+    for year in backup.inflation ?? [] {
+      context.insert(AnnualInflation(year: year.year, percent: year.percent))
     }
     try context.save()
   }

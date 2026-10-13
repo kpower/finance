@@ -2,10 +2,12 @@ import SwiftData
 import SwiftUI
 
 struct HistoryView: View {
+  /// Screens pushed over the section's table; owned by `MainView`.
+  @Binding var path: NavigationPath
+
   @Environment(\.modelContext) private var context
   @Query(sort: \Snapshot.date) private var snapshots: [Snapshot]
 
-  @State private var path: [HistoryRoute] = []
   @State private var selection: Set<PersistentIdentifier> = []
   @State private var pendingDelete: Set<PersistentIdentifier> = []
   @State private var isAddingArchive = false
@@ -25,51 +27,49 @@ struct HistoryView: View {
   }
 
   var body: some View {
-    NavigationStack(path: $path) {
-      Group {
-        if snapshots.isEmpty {
-          ContentUnavailableView {
-            Label { Text(.historyEmptyTitle) } icon: { Image(systemName: "clock.arrow.circlepath") }
-          } description: {
-            Text(.historyEmptyDescription)
-          } actions: {
-            Button { path.append(.newEntry) } label: { Text(.historyEmptyAddButton) }
-              .buttonStyle(.borderedProminent)
-          }
+    Group {
+      if snapshots.isEmpty {
+        ContentUnavailableView {
+          Label { Text(.historyEmptyTitle) } icon: { Image(systemName: "clock.arrow.circlepath") }
+        } description: {
+          Text(.historyEmptyDescription)
+        } actions: {
+          Button { path.append(HistoryRoute.newEntry) } label: { Text(.historyEmptyAddButton) }
+            .buttonStyle(.borderedProminent)
+        }
+      } else {
+        VSplitView {
+          HistoryCharts(rows: rows)
+            .frame(minHeight: 180, idealHeight: 240)
+          table
+            .frame(minHeight: 160)
+        }
+      }
+    }
+    .navigationTitle(Text(.historyNavigationTitle))
+    .toolbar {
+      Button { path.append(HistoryRoute.newEntry) } label: {
+        Label { Text(.historyToolbarAddEntryButton) } icon: { Image(systemName: "plus") }
+      }
+      .help(Text(.historyToolbarAddEntryHelp))
+      Button { isAddingArchive = true } label: {
+        Label { Text(.historyToolbarAddArchiveButton) } icon: { Image(systemName: "archivebox") }
+      }
+      .help(Text(.historyToolbarAddArchiveHelp))
+    }
+    .sheet(isPresented: $isAddingArchive) {
+      ArchiveEntrySheet()
+    }
+    .navigationDestination(for: HistoryRoute.self) { route in
+      switch route {
+      case .newEntry:
+        SnapshotDetailView(newEntryWith: latestDeposits)
+      case let .entry(id):
+        if let snapshot = snapshots.first(where: { $0.persistentModelID == id }) {
+          SnapshotDetailView(snapshot: snapshot)
         } else {
-          VSplitView {
-            HistoryCharts(rows: rows)
-              .frame(minHeight: 180, idealHeight: 240)
-            table
-              .frame(minHeight: 160)
-          }
-        }
-      }
-      .navigationTitle(Text(.historyNavigationTitle))
-      .toolbar {
-        Button { path.append(.newEntry) } label: {
-          Label { Text(.historyToolbarAddEntryButton) } icon: { Image(systemName: "plus") }
-        }
-        .help(Text(.historyToolbarAddEntryHelp))
-        Button { isAddingArchive = true } label: {
-          Label { Text(.historyToolbarAddArchiveButton) } icon: { Image(systemName: "archivebox") }
-        }
-        .help(Text(.historyToolbarAddArchiveHelp))
-      }
-      .sheet(isPresented: $isAddingArchive) {
-        ArchiveEntrySheet()
-      }
-      .navigationDestination(for: HistoryRoute.self) { route in
-        switch route {
-        case .newEntry:
-          SnapshotDetailView(newEntryWith: latestDeposits)
-        case .entry(let id):
-          if let snapshot = snapshots.first(where: { $0.persistentModelID == id }) {
-            SnapshotDetailView(snapshot: snapshot)
-          } else {
-            ContentUnavailableView {
-              Label { Text(.historyDetailDeletedTitle) } icon: { Image(systemName: "trash") }
-            }
+          ContentUnavailableView {
+            Label { Text(.historyDetailDeletedTitle) } icon: { Image(systemName: "trash") }
           }
         }
       }
@@ -180,13 +180,13 @@ struct HistoryView: View {
     }
     .contextMenu(forSelectionType: PersistentIdentifier.self) { ids in
       if let id = ids.first, ids.count == 1 {
-        Button { path.append(.entry(id)) } label: { Text(.historyContextMenuOpenButton) }
+        Button { path.append(HistoryRoute.entry(id)) } label: { Text(.historyContextMenuOpenButton) }
       }
       if !ids.isEmpty {
         Button(role: .destructive) { pendingDelete = ids } label: { Text(.historyContextMenuDeleteButton) }
       }
     } primaryAction: { ids in
-      if let id = ids.first { path.append(.entry(id)) }
+      if let id = ids.first { path.append(HistoryRoute.entry(id)) }
     }
   }
 
@@ -207,24 +207,13 @@ private enum HistoryRoute: Hashable {
   case newEntry
 }
 
-private enum Cell {
-  fileprivate static func money(_ value: Double?, bold: Bool = false) -> some View {
-    Text(Fmt.money(value)).monospacedDigit().fontWeight(bold ? .semibold : .regular)
-  }
-
+extension Cell {
   /// Orange when the rate was typed by hand or obtained for another day.
   fileprivate static func rate(_ value: Double, needsAttention: Bool) -> some View {
     Text(Fmt.rate(value))
       .monospacedDigit()
       .foregroundStyle(needsAttention ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
       .help(needsAttention ? Text(.historyTableRateAttentionHelp) : Text(verbatim: ""))
-  }
-
-  /// Green for growth, red for decline; blank when there is nothing to compare with.
-  fileprivate static func delta(_ value: Double?) -> some View {
-    Text(value.map(Fmt.signedMoney) ?? "")
-      .monospacedDigit()
-      .foregroundStyle(value.map { $0 > 0 ? Color.green : $0 < 0 ? .red : .secondary } ?? .secondary)
   }
 }
 
@@ -234,12 +223,12 @@ private enum Cell {
     configurations: ModelConfiguration(isStoredInMemoryOnly: true)
   )
   PreviewData.seed(container.mainContext)
-  return HistoryView()
+  return NavigationStack { HistoryView(path: .constant(NavigationPath())) }
     .modelContainer(container)
     .frame(width: 1100, height: 400)
 }
 
 #Preview("Empty") {
-  HistoryView()
+  NavigationStack { HistoryView(path: .constant(NavigationPath())) }
     .modelContainer(for: FinanceSchema.models, inMemory: true)
 }

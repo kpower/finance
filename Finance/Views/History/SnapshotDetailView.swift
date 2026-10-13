@@ -50,6 +50,7 @@ struct SnapshotDetailView: View {
       footer
     }
     .navigationTitle(title)
+    .reportsUnsavedEdits(hasUnsavedChanges)
     // The system back button cannot be asked to wait for a confirmation, so the screen has its own.
     .navigationBarBackButtonHidden()
     .toolbar {
@@ -111,26 +112,7 @@ struct SnapshotDetailView: View {
 
   private var hasUnsavedChanges: Bool { draft != saved }
 
-  private enum SaveBlocker {
-    case dayTaken
-    case noRates
-    case noDeposits
-
-    var message: LocalizedStringResource {
-      switch self {
-      case .dayTaken: .historyDetailBlockerDayTaken
-      case .noRates: .historyDetailBlockerNoRates
-      case .noDeposits: .historyDetailBlockerNoDeposits
-      }
-    }
-  }
-
-  private enum Validation {
-    case ready(Rates)
-    case blocked(SaveBlocker)
-  }
-
-  private var validation: Validation {
+  private var validation: SnapshotValidation {
     if SnapshotService.isDayTaken(draft.date, excluding: stored, in: context) { return .blocked(.dayTaken) }
     guard let rates = draft.rates else { return .blocked(.noRates) }
     switch draft.kind {
@@ -150,7 +132,13 @@ struct SnapshotDetailView: View {
   /// Writes the draft to the entry, creating the entry on the first save of a new one.
   @discardableResult
   private func save() -> Bool {
-    guard case .ready(let rates) = validation else { return false }
+    switch validation {
+    case let .ready(rates): save(rates: rates)
+    case .blocked: false
+    }
+  }
+
+  private func save(rates: Rates) -> Bool {
     let comment = draft.comment.trimmingCharacters(in: .whitespacesAndNewlines)
     let snapshot: Snapshot
     if let stored {
@@ -239,7 +227,7 @@ struct SnapshotDetailView: View {
   private var exitDialogMessage: Text {
     switch validation {
     case .ready: Text(.historyDetailExitDialogSaveMessage)
-    case .blocked(let blocker): Text(.historyDetailExitDialogBlockedMessage(String(localized: blocker.message)))
+    case let .blocked(blocker): Text(.historyDetailExitDialogBlockedMessage(String(localized: blocker.message)))
     }
   }
 
@@ -355,7 +343,7 @@ struct SnapshotDetailView: View {
   /// What stands between the draft and the stored entry: why it cannot be saved, or that it differs.
   @ViewBuilder private var status: some View {
     switch validation {
-    case .blocked(let blocker):
+    case let .blocked(blocker):
       Label { Text(blocker.message) } icon: { Image(systemName: "exclamationmark.triangle.fill") }
         .foregroundStyle(.red)
     case .ready:
@@ -376,6 +364,25 @@ struct SnapshotDetailView: View {
     VStack(alignment: .trailing, spacing: 2) {
       Text(title).font(.caption).foregroundStyle(.secondary)
       Text(value).monospacedDigit()
+    }
+  }
+}
+
+private enum SnapshotValidation {
+  case ready(Rates)
+  case blocked(SnapshotSaveBlocker)
+}
+
+private enum SnapshotSaveBlocker {
+  case dayTaken
+  case noRates
+  case noDeposits
+
+  var message: LocalizedStringResource {
+    switch self {
+    case .dayTaken: .historyDetailBlockerDayTaken
+    case .noRates: .historyDetailBlockerNoRates
+    case .noDeposits: .historyDetailBlockerNoDeposits
     }
   }
 }

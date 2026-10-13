@@ -17,6 +17,11 @@ enum Fmt {
     value.formatted(.number.precision(.fractionLength(2)).sign(strategy: .always()))
   }
 
+  /// 2,4 млн
+  static func compactMoney(_ value: Double) -> String {
+    value.formatted(.number.notation(.compactName))
+  }
+
   /// 92,5432
   static func rate(_ value: Double) -> String {
     value.formatted(.number.precision(.fractionLength(4)))
