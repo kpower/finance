@@ -3,9 +3,9 @@ import Foundation
 /// Backup file contents. Independent from the SwiftData models so the stored schema
 /// can evolve without breaking old files; bump `currentVersion` on incompatible changes.
 struct Backup: Codable {
-  /// 6: history entries, the Savings section and inflation. Version 5 files load too, the ids their
+  /// 6: balance entries, the Savings section and inflation. Version 5 files load too, the ids their
   /// deposits, expenses and tax brackets carry are ignored; so do version 4 files, they have only
-  /// history entries, and version 3 files, their separate list of deposits is ignored.
+  /// balance entries, and version 3 files, their separate list of deposits is ignored.
   /// Older files do not load.
   static let currentVersion = 6
 

@@ -1,6 +1,6 @@
 import Foundation
 
-/// Editable copy of a history entry: what the entry screen shows and compares with the saved values.
+/// Editable copy of a balance entry: what the entry screen shows and compares with the saved values.
 /// The entry itself changes only when the user saves.
 struct SnapshotDraft: Equatable {
   /// Start of the entry's day.

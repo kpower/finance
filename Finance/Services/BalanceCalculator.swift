@@ -1,16 +1,16 @@
 import Foundation
 
-enum HistoryCalculator {
+enum BalanceCalculator {
   /// Rows in ascending date order, each compared with the previous entry.
-  static func rows(for entries: [Stored<SnapshotValues>]) -> [HistoryRow] {
-    var result: [HistoryRow] = []
+  static func rows(for entries: [Stored<SnapshotValues>]) -> [BalanceRow] {
+    var result: [BalanceRow] = []
     for entry in entries.sorted(by: { $0.values.date < $1.values.date }) {
       result.append(makeRow(entry, after: result.last))
     }
     return result
   }
 
-  private static func makeRow(_ entry: Stored<SnapshotValues>, after prev: HistoryRow?) -> HistoryRow {
+  private static func makeRow(_ entry: Stored<SnapshotValues>, after prev: BalanceRow?) -> BalanceRow {
     let date = entry.values.date
     let rates = entry.values.rates
     let sums = entry.values.content.sums
@@ -22,7 +22,7 @@ enum HistoryCalculator {
     let days = prev
       .flatMap { Calendar.current.dateComponents([.day], from: $0.date, to: date).day }
       .flatMap { $0 > 0 ? $0 : nil }
-    return HistoryRow(
+    return BalanceRow(
       id: entry.id, date: date, kind: entry.values.content.kind,
       ratesNeedAttention: rates.needAttention(on: date),
       sumRUB: sums.rub, sumUSD: sums.usd, usdRate: rates.usd, usdInRUB: usdInRUB,
@@ -37,9 +37,9 @@ enum HistoryCalculator {
   }
 
   /// Nil when there is nothing to compare with.
-  private static func delta(from old: Double?, to new: Double?, days: Int?) -> HistoryDelta? {
+  private static func delta(from old: Double?, to new: Double?, days: Int?) -> BalanceDelta? {
     guard let old, let new, let days else { return nil }
     let d = new - old
-    return HistoryDelta(value: d, perDay: d / Double(days))
+    return BalanceDelta(value: d, perDay: d / Double(days))
   }
 }

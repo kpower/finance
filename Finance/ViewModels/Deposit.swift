@@ -1,6 +1,6 @@
 import Foundation
 
-/// A deposit or account as it was on the day of a history entry.
+/// A deposit or account as it was on the day of a balance entry.
 struct Deposit: Hashable, Identifiable, Sendable {
   /// Tells the rows of a screen apart and nothing else: it is not stored, so a deposit read
   /// from the store again has another one.

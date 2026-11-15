@@ -4,6 +4,8 @@ import SwiftUI
 struct SavingsView: View {
   /// Screens pushed over the section's table; owned by `MainView`.
   @Binding var path: NavigationPath
+  /// Shows the Year Parameters section.
+  let openYears: () -> Void
 
   @Environment(\.modelContext) private var context
   @Query(sort: \SavingsEntry.date) private var entries: [SavingsEntry]
@@ -12,6 +14,7 @@ struct SavingsView: View {
 
   @State private var selection: Set<PersistentIdentifier> = []
   @State private var pendingDelete: Set<PersistentIdentifier> = []
+  @FocusState private var isTableFocused: Bool
   @SceneStorage("savingsColumns") private var customization = TableColumnCustomization<SavingsRow>()
 
   private var rows: [SavingsRow] {
@@ -44,10 +47,6 @@ struct SavingsView: View {
         Label { Text(.savingsToolbarAddEntryButton) } icon: { Image(systemName: "plus") }
       }
       .help(Text(.savingsToolbarAddEntryHelp))
-      Button(action: openYears) {
-        Label { Text(.savingsToolbarYearsButton) } icon: { Image(systemName: "calendar") }
-      }
-      .help(Text(.savingsToolbarYearsHelp))
     }
     .navigationDestination(for: SavingsRoute.self) { route in
       switch route {
@@ -61,8 +60,6 @@ struct SavingsView: View {
             Label { Text(.savingsDetailDeletedTitle) } icon: { Image(systemName: "trash") }
           }
         }
-      case .years:
-        SavingsYearsView()
       }
     }
     .confirmationDialog(
@@ -141,6 +138,12 @@ struct SavingsView: View {
     } primaryAction: { ids in
       if let id = ids.first { path.append(SavingsRoute.entry(id)) }
     }
+    .onDeleteCommand { pendingDelete = selection }
+    .focused($isTableFocused)
+    // Coming back from a pushed screen leaves nothing focused, and so can a click on a row: the selection
+    // then turns gray and the arrow keys do nothing.
+    .onChange(of: selection) { isTableFocused = true }
+    .onChange(of: path.isEmpty) { if path.isEmpty { isTableFocused = true } }
   }
 
   /// One block per line, a split one followed by its parts: "Mortgage: 96 000 = principal 78 000 + interest 18 000".
@@ -155,10 +158,6 @@ struct SavingsView: View {
       }
     }
     .joined(separator: "\n")
-  }
-
-  private func openYears() {
-    path.append(SavingsRoute.years)
   }
 
   private func delete(_ ids: Set<PersistentIdentifier>) {
@@ -176,7 +175,6 @@ private enum SavingsRoute: Hashable {
   case entry(PersistentIdentifier)
   /// An entry that does not exist until it is saved from its screen.
   case newEntry
-  case years
 }
 
 #Preview {
@@ -185,12 +183,12 @@ private enum SavingsRoute: Hashable {
     configurations: ModelConfiguration(isStoredInMemoryOnly: true)
   )
   PreviewData.seed(container.mainContext)
-  return NavigationStack { SavingsView(path: .constant(NavigationPath())) }
+  return NavigationStack { SavingsView(path: .constant(NavigationPath())) {} }
     .modelContainer(container)
     .frame(width: 1100, height: 400)
 }
 
 #Preview("Empty") {
-  NavigationStack { SavingsView(path: .constant(NavigationPath())) }
+  NavigationStack { SavingsView(path: .constant(NavigationPath())) {} }
     .modelContainer(for: FinanceSchema.models, inMemory: true)
 }

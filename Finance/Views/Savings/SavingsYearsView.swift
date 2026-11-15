@@ -5,7 +5,6 @@ import SwiftUI
 /// a change is stored at once and every entry is recalculated with it.
 struct SavingsYearsView: View {
   @Environment(\.modelContext) private var context
-  @Environment(\.dismiss) private var dismiss
   @Query(sort: \SavingsYear.year, order: .reverse) private var years: [SavingsYear]
   @Query private var entries: [SavingsEntry]
   @Query private var inflation: [AnnualInflation]
@@ -13,6 +12,7 @@ struct SavingsYearsView: View {
   @State private var selection: Set<PersistentIdentifier> = []
   @State private var pendingDelete: Set<PersistentIdentifier> = []
   @State private var isAdding = false
+  @FocusState private var isTableFocused: Bool
 
   var body: some View {
     Group {
@@ -30,25 +30,15 @@ struct SavingsYearsView: View {
       }
     }
     .navigationTitle(Text(.savingsYearsTitle))
-    // Pushed over an entry screen, which hides the system back button, this screen gets none
-    // either, so it has its own.
-    .navigationBarBackButtonHidden()
     .toolbar {
-      ToolbarItem(placement: .navigation) {
-        Button { dismiss() } label: {
-          Label { Text(.savingsYearsToolbarBackButton) } icon: { Image(systemName: "chevron.backward") }
-        }
+      Button { isAdding = true } label: {
+        Label { Text(.savingsYearsToolbarAddButton) } icon: { Image(systemName: "plus") }
       }
-      ToolbarItemGroup {
-        Button { isAdding = true } label: {
-          Label { Text(.savingsYearsToolbarAddButton) } icon: { Image(systemName: "plus") }
-        }
-        .help(Text(.savingsYearsToolbarAddHelp))
-        Button { pendingDelete = selection } label: {
-          Label { Text(.savingsYearsToolbarDeleteButton) } icon: { Image(systemName: "trash") }
-        }
-        .disabled(selection.isEmpty)
+      .help(Text(.savingsYearsToolbarAddHelp))
+      Button { pendingDelete = selection } label: {
+        Label { Text(.savingsYearsToolbarDeleteButton) } icon: { Image(systemName: "trash") }
       }
+      .disabled(selection.isEmpty)
     }
     .sheet(isPresented: $isAdding) {
       SavingsYearSheet(after: years.first.map { SavingsYearValues($0) })
@@ -106,6 +96,9 @@ struct SavingsYearsView: View {
       }
     }
     .onDeleteCommand { pendingDelete = selection }
+    .focused($isTableFocused)
+    // A click on a row can leave nothing focused: the selection then turns gray and the arrow keys do nothing.
+    .onChange(of: selection) { isTableFocused = true }
   }
 
   /// Binding to a value of the year behind `row`; a change goes to the stored year at once.

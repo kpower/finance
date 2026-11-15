@@ -1,7 +1,7 @@
 import SwiftData
 import SwiftUI
 
-/// Adds a past history entry with only currency totals (no per-deposit details).
+/// Adds a past balance entry with only currency totals (no per-deposit details).
 struct ArchiveEntrySheet: View {
   @Environment(\.modelContext) private var context
   @Environment(\.dismiss) private var dismiss

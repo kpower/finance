@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-/// A stored history entry: all deposits, or only their currency totals, and the rates on a given day.
+/// A stored balance entry: all deposits, or only their currency totals, and the rates on a given day.
 @Model
 final class Snapshot {
   /// Start of the day the snapshot belongs to: its key, one snapshot per day.

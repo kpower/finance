@@ -1,6 +1,6 @@
 import Foundation
 
-/// A history entry: all deposits, or only their currency totals, and the rates on a given day.
+/// A balance entry: all deposits, or only their currency totals, and the rates on a given day.
 struct SnapshotValues {
   /// Start of the entry's day.
   let date: Date
