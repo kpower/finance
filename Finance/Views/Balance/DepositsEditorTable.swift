@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-/// Editable deposits of a detailed history entry.
+/// Editable deposits of a detailed balance entry.
 /// A cell is highlighted when its value differs from the saved one; every cell of an added deposit is.
 struct DepositsEditorTable: View {
   @Binding var items: [Deposit]
@@ -15,11 +15,11 @@ struct DepositsEditorTable: View {
   var body: some View {
     if items.isEmpty {
       ContentUnavailableView {
-        Label { Text(.historyDetailEmptyTitle) } icon: { Image(systemName: "banknote") }
+        Label { Text(.balanceDetailEmptyTitle) } icon: { Image(systemName: "banknote") }
       } description: {
-        Text(.historyDetailEmptyDescription)
+        Text(.balanceDetailEmptyDescription)
       } actions: {
-        Button(action: onAdd) { Text(.historyDetailEmptyAddButton) }
+        Button(action: onAdd) { Text(.balanceDetailEmptyAddButton) }
           .buttonStyle(.borderedProminent)
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -42,13 +42,13 @@ struct DepositsEditorTable: View {
     }
 
     return Table(items, selection: $selection) {
-      TableColumn(Text(.historyDetailTableNameColumn)) { item in
-        TextCell(text: binding(to: item).name, prompt: Text(.historyDetailTableNamePrompt))
+      TableColumn(Text(.balanceDetailTableNameColumn)) { item in
+        TextCell(text: binding(to: item).name, prompt: Text(.balanceDetailTableNamePrompt))
           .changeHighlight(isChanged(item, \.name))
       }
       .width(min: 120, ideal: 180)
 
-      TableColumn(Text(.historyDetailTableBankColumn)) { item in
+      TableColumn(Text(.balanceDetailTableBankColumn)) { item in
         BankCell(bank: binding(to: item).bank, banks: banks)
           .changeHighlight(isChanged(item, \.bank))
       }
@@ -75,7 +75,7 @@ struct DepositsEditorTable: View {
       .width(min: 80, ideal: 100)
       .alignment(.trailing)
 
-      TableColumn(Text(.historyDetailTableTotalRubColumn)) { item in
+      TableColumn(Text(.balanceDetailTableTotalRubColumn)) { item in
         TotalCell(deposit: item, rates: rates)
       }
       .width(min: 100, ideal: 130)
@@ -88,14 +88,14 @@ struct DepositsEditorTable: View {
       .width(min: 50, ideal: 60)
       .alignment(.trailing)
 
-      TableColumn(Text(.historyDetailTableTermColumn)) { item in
+      TableColumn(Text(.balanceDetailTableTermColumn)) { item in
         TermCell(deposit: binding(to: item))
           .changeHighlight(isChanged(item, \.termMonths))
       }
       .width(min: 60, ideal: 80)
       .alignment(.trailing)
 
-      TableColumn(Text(.historyDetailTableOpenDateColumn)) { item in
+      TableColumn(Text(.balanceDetailTableOpenDateColumn)) { item in
         let deposit = binding(to: item)
         OptionalDateField(
           date: Binding(
@@ -107,7 +107,7 @@ struct DepositsEditorTable: View {
       }
       .width(min: 130, ideal: 150)
 
-      TableColumn(Text(.historyDetailTableCloseDateColumn)) { item in
+      TableColumn(Text(.balanceDetailTableCloseDateColumn)) { item in
         CloseDateCell(deposit: binding(to: item))
           .changeHighlight(isChanged(item, \.closeDate))
       }
@@ -152,7 +152,7 @@ private struct BankCell: View {
   }
 
   var body: some View {
-    TextField(text: $bank, prompt: Text(.historyDetailTableBankPrompt)) { Text(.historyDetailTableBankPrompt) }
+    TextField(text: $bank, prompt: Text(.balanceDetailTableBankPrompt)) { Text(.balanceDetailTableBankPrompt) }
       .textFieldStyle(.plain)
       .textInputSuggestions {
         ForEach(suggestions, id: \.self) { bank in
@@ -200,12 +200,12 @@ private struct CloseDateCell: View {
       OptionalDateField(date: $deposit.closeDate, defaultDate: deposit.expectedCloseDate ?? .now)
       if deposit.isCloseDateManual, let expected = deposit.expectedCloseDate {
         Button { deposit.recalculateCloseDate() } label: {
-          Label { Text(.historyDetailTableRecalculateCloseDateButton) } icon: { Image(systemName: "arrow.uturn.backward.circle") }
+          Label { Text(.balanceDetailTableRecalculateCloseDateButton) } icon: { Image(systemName: "arrow.uturn.backward.circle") }
         }
         .labelStyle(.iconOnly)
         .buttonStyle(.borderless)
         .foregroundStyle(.orange)
-        .help(Text(.historyDetailTableRecalculateCloseDateHelp(Fmt.date(expected))))
+        .help(Text(.balanceDetailTableRecalculateCloseDateHelp(Fmt.date(expected))))
       }
     }
   }
@@ -228,7 +228,7 @@ private struct TotalCell: View {
       } else if let total {
         Text(Fmt.money(total))
       } else {
-        Text(.historyDetailTableNoRateLabel).foregroundStyle(.secondary)
+        Text(.balanceDetailTableNoRateLabel).foregroundStyle(.secondary)
       }
     }
     .monospacedDigit()

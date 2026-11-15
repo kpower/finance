@@ -3,29 +3,36 @@ import Foundation
 import SwiftUI
 
 /// Total over time, converted to each currency: one chart per currency, hover synced across them.
-struct HistoryCharts: View {
+struct BalanceCharts: View {
   /// Rows in any order.
-  let rows: [HistoryRow]
+  let rows: [BalanceRow]
+  /// A click on a chart picks the entry its tooltip shows.
+  let onSelect: (BalanceRow.ID) -> Void
 
   @State private var hoveredDate: Date?
 
   var body: some View {
     let sorted = rows.sorted { $0.date < $1.date }
     HStack(spacing: 16) {
-      TotalChart(title: .historyChartTotalRubTitle, points: sorted.map { ($0, $0.totalRUB) }, hoveredDate: $hoveredDate)
-      TotalChart(title: .historyChartTotalUsdTitle, points: sorted.compactMap { r in r.totalUSD.map { (r, $0) } }, hoveredDate: $hoveredDate)
-      TotalChart(title: .historyChartTotalEurTitle, points: sorted.compactMap { r in r.totalEUR.map { (r, $0) } }, hoveredDate: $hoveredDate)
+      chart(.balanceChartTotalRubTitle, sorted.map { ($0, $0.totalRUB) })
+      chart(.balanceChartTotalUsdTitle, sorted.compactMap { r in r.totalUSD.map { (r, $0) } })
+      chart(.balanceChartTotalEurTitle, sorted.compactMap { r in r.totalEUR.map { (r, $0) } })
     }
     .padding(16)
+  }
+
+  private func chart(_ title: LocalizedStringResource, _ points: [(row: BalanceRow, value: Double)]) -> some View {
+    TotalChart(title: title, points: points, hoveredDate: $hoveredDate, onSelect: onSelect)
   }
 }
 
 private struct TotalChart: View {
   let title: LocalizedStringResource
-  let points: [(row: HistoryRow, value: Double)]
+  let points: [(row: BalanceRow, value: Double)]
   @Binding var hoveredDate: Date?
+  let onSelect: (BalanceRow.ID) -> Void
 
-  private var hovered: (row: HistoryRow, value: Double)? {
+  private var hovered: (row: BalanceRow, value: Double)? {
     guard let hoveredDate else { return nil }
     return points.min {
       abs($0.row.date.timeIntervalSince(hoveredDate)) < abs($1.row.date.timeIntervalSince(hoveredDate))
@@ -49,7 +56,7 @@ private struct TotalChart: View {
   }
 
   var body: some View {
-    let dateLabel = String(localized: .historyChartDateAxisLabel)
+    let dateLabel = String(localized: .balanceChartDateAxisLabel)
     let valueLabel = String(localized: title)
     VStack(alignment: .leading, spacing: 8) {
       Text(title).font(.headline)
@@ -70,6 +77,14 @@ private struct TotalChart: View {
         }
       }
       .chartXSelection(value: $hoveredDate)
+      // Simultaneous, or the chart's own selection takes the click; not `chartGesture`, which takes
+      // the place of the hover that `chartXSelection` follows.
+      .simultaneousGesture(
+        TapGesture().onEnded {
+          guard let hovered else { return }
+          onSelect(hovered.row.id)
+        }
+      )
       .chartYScale(domain: yDomain)
       .chartYAxis {
         AxisMarks(values: .automatic(desiredCount: 4)) { value in
@@ -92,7 +107,7 @@ private struct TotalChart: View {
     .frame(maxWidth: .infinity)
   }
 
-  private func tooltip(_ point: (row: HistoryRow, value: Double)) -> some View {
+  private func tooltip(_ point: (row: BalanceRow, value: Double)) -> some View {
     VStack(alignment: .leading, spacing: 2) {
       Text(Fmt.date(point.row.date)).font(.caption).foregroundStyle(.secondary)
       Text(Fmt.money(point.value)).font(.callout.weight(.semibold)).monospacedDigit()
@@ -100,7 +115,7 @@ private struct TotalChart: View {
       case .detailed:
         EmptyView()
       case .summaryOnly:
-        Text(.historyChartArchiveEntryLabel).font(.caption2).foregroundStyle(.secondary)
+        Text(.balanceChartArchiveEntryLabel).font(.caption2).foregroundStyle(.secondary)
       }
     }
     .padding(6)

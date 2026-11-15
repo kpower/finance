@@ -2,7 +2,7 @@ import SwiftData
 import SwiftUI
 
 struct MainView: View {
-  @SceneStorage("selectedSection") private var selection = AppSection.history
+  @SceneStorage("selectedSection") private var selection = AppSection.balance
   /// Screens pushed over the selected section's table. They belong to that section,
   /// so the path is emptied when another one is selected.
   @State private var path = NavigationPath()
@@ -26,8 +26,9 @@ struct MainView: View {
       // inside SwiftUI when a section is left with a screen pushed.
       NavigationStack(path: $path) {
         switch selection {
-        case .history: HistoryView(path: $path)
-        case .savings: SavingsView(path: $path)
+        case .balance: BalanceView(path: $path)
+        case .savings: SavingsView(path: $path) { request(.savingsYears) }
+        case .savingsYears: SavingsYearsView()
         }
       }
     }
@@ -55,14 +56,20 @@ struct MainView: View {
     Binding(
       get: { selection },
       set: { newValue in
-        guard let newValue, newValue != selection else { return }
-        if hasUnsavedEdits {
-          pendingSelection = newValue
-        } else {
-          show(newValue)
-        }
+        guard let newValue else { return }
+        request(newValue)
       }
     )
+  }
+
+  /// Shows `section`, asking first when the open entry has unsaved edits.
+  private func request(_ section: AppSection) {
+    guard section != selection else { return }
+    if hasUnsavedEdits {
+      pendingSelection = section
+    } else {
+      show(section)
+    }
   }
 
   private func show(_ section: AppSection) {

@@ -1,7 +1,7 @@
 import SwiftData
 import SwiftUI
 
-/// A history entry opened for editing: a stored one, or a new detailed one that is stored by its first save.
+/// A balance entry opened for editing: a stored one, or a new detailed one that is stored by its first save.
 /// Edits stay in a draft and are highlighted; only Save writes them to the entry, and leaving the screen
 /// or closing the window with unsaved edits asks what to do with them.
 struct SnapshotDetailView: View {
@@ -56,7 +56,7 @@ struct SnapshotDetailView: View {
     .toolbar {
       ToolbarItem(placement: .navigation) {
         Button(action: requestExit) {
-          Label { Text(.historyDetailToolbarBackButton) } icon: { Image(systemName: "chevron.backward") }
+          Label { Text(.balanceDetailToolbarBackButton) } icon: { Image(systemName: "chevron.backward") }
         }
       }
       ToolbarItemGroup {
@@ -66,24 +66,24 @@ struct SnapshotDetailView: View {
         }
       }
       ToolbarItem {
-        Button { save() } label: { Text(.historyDetailToolbarSaveButton) }
+        Button { save() } label: { Text(.balanceDetailToolbarSaveButton) }
           .keyboardShortcut("s", modifiers: .command)
           .disabled(!canSave)
       }
     }
     .confirmationDialog(
-      Text(.historyDetailClearDialogTitle),
+      Text(.balanceDetailClearDialogTitle),
       isPresented: $isConfirmingClear,
       titleVisibility: .visible
     ) {
-      Button(role: .destructive, action: clearDeposits) { Text(.historyDetailClearDialogClearButton) }
-      Button(role: .cancel) {} label: { Text(.historyDetailClearDialogCancelButton) }
+      Button(role: .destructive, action: clearDeposits) { Text(.balanceDetailClearDialogClearButton) }
+      Button(role: .cancel) {} label: { Text(.balanceDetailClearDialogCancelButton) }
     } message: {
-      Text(.historyDetailClearDialogMessage)
+      Text(.balanceDetailClearDialogMessage)
     }
     .confirmationDialog(exitDialogTitle, isPresented: $isConfirmingExit, titleVisibility: .visible) {
       exitDialogActions { dismiss() }
-      Button(role: .cancel) {} label: { Text(.historyDetailExitDialogCancelButton) }
+      Button(role: .cancel) {} label: { Text(.balanceDetailExitDialogCancelButton) }
     } message: {
       exitDialogMessage
     }
@@ -93,18 +93,18 @@ struct SnapshotDetailView: View {
     } message: {
       exitDialogMessage
     }
-    .alert(Text(.historyDetailSaveFailedAlertTitle), isPresented: $isSaveFailureShown) {
-      Button {} label: { Text(.historyDetailSaveFailedAlertOkButton) }
+    .alert(Text(.balanceDetailSaveFailedAlertTitle), isPresented: $isSaveFailureShown) {
+      Button {} label: { Text(.balanceDetailSaveFailedAlertOkButton) }
     } message: {
-      Text(.historyDetailSaveFailedAlertMessage)
+      Text(.balanceDetailSaveFailedAlertMessage)
     }
   }
 
   private var title: Text {
-    guard stored != nil else { return Text(.historyDetailNewTitle) }
+    guard stored != nil else { return Text(.balanceDetailNewTitle) }
     switch saved.content.kind {
-    case .detailed: return Text(.historyDetailDepositsTitle(Fmt.date(saved.date)))
-    case .summaryOnly: return Text(.historyDetailArchiveTitle(Fmt.date(saved.date)))
+    case .detailed: return Text(.balanceDetailDepositsTitle(Fmt.date(saved.date)))
+    case .summaryOnly: return Text(.balanceDetailArchiveTitle(Fmt.date(saved.date)))
     }
   }
 
@@ -173,14 +173,14 @@ struct SnapshotDetailView: View {
 
   @ViewBuilder private var depositButtons: some View {
     Button(action: addDeposit) {
-      Label { Text(.historyDetailToolbarAddButton) } icon: { Image(systemName: "plus") }
+      Label { Text(.balanceDetailToolbarAddButton) } icon: { Image(systemName: "plus") }
     }
     Button(action: deleteSelectedDeposits) {
-      Label { Text(.historyDetailToolbarDeleteButton) } icon: { Image(systemName: "trash") }
+      Label { Text(.balanceDetailToolbarDeleteButton) } icon: { Image(systemName: "trash") }
     }
     .disabled(selection.isEmpty)
     Button { isConfirmingClear = true } label: {
-      Label { Text(.historyDetailToolbarClearAllButton) } icon: { Image(systemName: "clear") }
+      Label { Text(.balanceDetailToolbarClearAllButton) } icon: { Image(systemName: "clear") }
     }
     .disabled(draft.content.deposits.isEmpty)
   }
@@ -232,15 +232,15 @@ struct SnapshotDetailView: View {
 
   private var exitDialogTitle: Text {
     switch validation {
-    case .ready: Text(.historyDetailExitDialogSaveTitle)
-    case .blocked: Text(.historyDetailExitDialogBlockedTitle)
+    case .ready: Text(.balanceDetailExitDialogSaveTitle)
+    case .blocked: Text(.balanceDetailExitDialogBlockedTitle)
     }
   }
 
   private var exitDialogMessage: Text {
     switch validation {
-    case .ready: Text(.historyDetailExitDialogSaveMessage)
-    case let .blocked(blocker): Text(.historyDetailExitDialogBlockedMessage(String(localized: blocker.message)))
+    case .ready: Text(.balanceDetailExitDialogSaveMessage)
+    case let .blocked(blocker): Text(.balanceDetailExitDialogBlockedMessage(String(localized: blocker.message)))
     }
   }
 
@@ -252,12 +252,12 @@ struct SnapshotDetailView: View {
       Button {
         if save() { leave() }
       } label: {
-        Text(.historyDetailExitDialogSaveButton)
+        Text(.balanceDetailExitDialogSaveButton)
       }
     case .blocked:
       EmptyView()
     }
-    Button(role: .destructive, action: leave) { Text(.historyDetailExitDialogDiscardButton) }
+    Button(role: .destructive, action: leave) { Text(.balanceDetailExitDialogDiscardButton) }
   }
 
   // MARK: Header
@@ -280,7 +280,7 @@ struct SnapshotDetailView: View {
 
   private var dateAndRates: some View {
     HStack(spacing: 20) {
-      DatePicker(selection: dateBinding, displayedComponents: .date) { Text(.historyDetailDateLabel) }
+      DatePicker(selection: dateBinding, displayedComponents: .date) { Text(.balanceDetailDateLabel) }
         .datePickerStyle(.field)
         .fixedSize()
         .changeHighlight(draft.date != saved.date)
@@ -290,7 +290,7 @@ struct SnapshotDetailView: View {
   }
 
   private var commentField: some View {
-    TextField(text: $draft.comment) { Text(.historyDetailCommentLabel) }
+    TextField(text: $draft.comment) { Text(.balanceDetailCommentLabel) }
       .frame(maxWidth: .infinity)
       .changeHighlight(draft.comment != saved.comment)
   }
@@ -304,9 +304,9 @@ struct SnapshotDetailView: View {
   private var summaryNote: some View {
     let savedTotals = saved.content.sums
     return ContentUnavailableView {
-      Label { Text(.historyDetailSummaryOnlyTitle) } icon: { Image(systemName: "archivebox") }
+      Label { Text(.balanceDetailSummaryOnlyTitle) } icon: { Image(systemName: "archivebox") }
     } description: {
-      Text(.historyDetailSummaryOnlyDescription)
+      Text(.balanceDetailSummaryOnlyDescription)
     } actions: {
       HStack(spacing: 20) {
         sumField("₽", value: totals.rub, isChanged: totals.wrappedValue.rub != savedTotals.rub)
@@ -355,11 +355,11 @@ struct SnapshotDetailView: View {
       sum("Σ $", Fmt.money(sums.usd))
       sum("Σ €", Fmt.money(sums.eur))
       VStack(alignment: .trailing, spacing: 2) {
-        Text(.historyDetailFooterTotalRubLabel).font(.caption).foregroundStyle(.secondary)
+        Text(.balanceDetailFooterTotalRubLabel).font(.caption).foregroundStyle(.secondary)
         if let rates = draft.rates {
           Text(Fmt.money(sums.totalRUB(at: rates))).font(.title3.weight(.semibold)).monospacedDigit()
         } else {
-          Text(.historyDetailFooterNoRateLabel).font(.title3).foregroundStyle(.secondary)
+          Text(.balanceDetailFooterNoRateLabel).font(.title3).foregroundStyle(.secondary)
         }
       }
     }
@@ -376,11 +376,11 @@ struct SnapshotDetailView: View {
         .foregroundStyle(.red)
     case .ready:
       if stored == nil {
-        Text(.historyDetailStatusNew).foregroundStyle(.secondary)
+        Text(.balanceDetailStatusNew).foregroundStyle(.secondary)
       } else if hasUnsavedChanges {
         // Removed deposits have no row left to highlight, so they are counted here.
         let removed = saved.content.deposits.count { deposit in !draft.content.deposits.contains { $0.id == deposit.id } }
-        Text(removed == 0 ? LocalizedStringResource.historyDetailStatusUnsaved : .historyDetailStatusUnsavedRemoved(removed))
+        Text(removed == 0 ? LocalizedStringResource.balanceDetailStatusUnsaved : .balanceDetailStatusUnsavedRemoved(removed))
           .padding(.horizontal, 6)
           .padding(.vertical, 2)
           .changeHighlight(true)
@@ -408,9 +408,9 @@ private enum SnapshotSaveBlocker {
 
   var message: LocalizedStringResource {
     switch self {
-    case .dayTaken: .historyDetailBlockerDayTaken
-    case .noRates: .historyDetailBlockerNoRates
-    case .noDeposits: .historyDetailBlockerNoDeposits
+    case .dayTaken: .balanceDetailBlockerDayTaken
+    case .noRates: .balanceDetailBlockerNoRates
+    case .noDeposits: .balanceDetailBlockerNoDeposits
     }
   }
 }

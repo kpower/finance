@@ -11,7 +11,7 @@ struct SavingsEntryDetailView: View {
   @Query private var years: [SavingsYear]
   @Query private var inflation: [AnnualInflation]
 
-  /// Shows the year parameters over this screen; the draft stays as it is underneath.
+  /// Shows the Year Parameters section, which closes this screen.
   private let openYears: () -> Void
   /// Entry the draft is saved to; nil while a new entry has not been saved yet.
   @State private var stored: SavingsEntry?

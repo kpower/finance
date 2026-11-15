@@ -415,13 +415,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Backup of %1$@: history entries — %2$lld. Current data will be deleted."
+            "value": "Backup of %1$@: balance entries — %2$lld. Current data will be deleted."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Бэкап от %1$@: записей истории — %2$lld. Текущие данные будут удалены."
+            "value": "Бэкап от %1$@: записей баланса — %2$lld. Текущие данные будут удалены."
           }
         }
       }
@@ -460,7 +460,7 @@
         }
       }
     },
-    "history.chart.archive_entry_label": {
+    "balance.chart.archive_entry_label": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -477,7 +477,7 @@
         }
       }
     },
-    "history.chart.date_axis_label": {
+    "balance.chart.date_axis_label": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -494,7 +494,7 @@
         }
       }
     },
-    "history.chart.total_eur_title": {
+    "balance.chart.total_eur_title": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -511,7 +511,7 @@
         }
       }
     },
-    "history.chart.total_rub_title": {
+    "balance.chart.total_rub_title": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -528,7 +528,7 @@
         }
       }
     },
-    "history.chart.total_usd_title": {
+    "balance.chart.total_usd_title": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -545,7 +545,7 @@
         }
       }
     },
-    "history.context_menu.delete_button": {
+    "balance.context_menu.delete_button": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -562,7 +562,7 @@
         }
       }
     },
-    "history.context_menu.open_button": {
+    "balance.context_menu.open_button": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -579,7 +579,7 @@
         }
       }
     },
-    "history.delete_dialog.delete_button": {
+    "balance.delete_dialog.delete_button": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -596,7 +596,7 @@
         }
       }
     },
-    "history.delete_dialog.message": {
+    "balance.delete_dialog.message": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -613,24 +613,24 @@
         }
       }
     },
-    "history.delete_dialog.title": {
+    "balance.delete_dialog.title": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Delete the selected history entries?"
+            "value": "Delete the selected balance entries?"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Удалить выбранные записи истории?"
+            "value": "Удалить выбранные записи баланса?"
           }
         }
       }
     },
-    "history.detail.archive_title": {
+    "balance.detail.archive_title": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -647,7 +647,7 @@
         }
       }
     },
-    "history.detail.blocker.day_taken": {
+    "balance.detail.blocker.day_taken": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -664,7 +664,7 @@
         }
       }
     },
-    "history.detail.blocker.no_deposits": {
+    "balance.detail.blocker.no_deposits": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -681,7 +681,7 @@
         }
       }
     },
-    "history.detail.blocker.no_rates": {
+    "balance.detail.blocker.no_rates": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -698,7 +698,7 @@
         }
       }
     },
-    "history.detail.clear_dialog.cancel_button": {
+    "balance.detail.clear_dialog.cancel_button": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -715,7 +715,7 @@
         }
       }
     },
-    "history.detail.clear_dialog.clear_button": {
+    "balance.detail.clear_dialog.clear_button": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -732,7 +732,7 @@
         }
       }
     },
-    "history.detail.clear_dialog.message": {
+    "balance.detail.clear_dialog.message": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -749,7 +749,7 @@
         }
       }
     },
-    "history.detail.clear_dialog.title": {
+    "balance.detail.clear_dialog.title": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -766,7 +766,7 @@
         }
       }
     },
-    "history.detail.comment_label": {
+    "balance.detail.comment_label": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -783,7 +783,7 @@
         }
       }
     },
-    "history.detail.date_label": {
+    "balance.detail.date_label": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -800,7 +800,7 @@
         }
       }
     },
-    "history.detail.deleted_title": {
+    "balance.detail.deleted_title": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -817,7 +817,7 @@
         }
       }
     },
-    "history.detail.deposits_title": {
+    "balance.detail.deposits_title": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -834,7 +834,7 @@
         }
       }
     },
-    "history.detail.empty.add_button": {
+    "balance.detail.empty.add_button": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -851,7 +851,7 @@
         }
       }
     },
-    "history.detail.empty.description": {
+    "balance.detail.empty.description": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -868,7 +868,7 @@
         }
       }
     },
-    "history.detail.empty.title": {
+    "balance.detail.empty.title": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -885,7 +885,7 @@
         }
       }
     },
-    "history.detail.exit_dialog.blocked_message": {
+    "balance.detail.exit_dialog.blocked_message": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -902,7 +902,7 @@
         }
       }
     },
-    "history.detail.exit_dialog.blocked_title": {
+    "balance.detail.exit_dialog.blocked_title": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -919,7 +919,7 @@
         }
       }
     },
-    "history.detail.exit_dialog.cancel_button": {
+    "balance.detail.exit_dialog.cancel_button": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -936,7 +936,7 @@
         }
       }
     },
-    "history.detail.exit_dialog.discard_button": {
+    "balance.detail.exit_dialog.discard_button": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -953,7 +953,7 @@
         }
       }
     },
-    "history.detail.exit_dialog.save_button": {
+    "balance.detail.exit_dialog.save_button": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -970,7 +970,7 @@
         }
       }
     },
-    "history.detail.exit_dialog.save_message": {
+    "balance.detail.exit_dialog.save_message": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -987,7 +987,7 @@
         }
       }
     },
-    "history.detail.exit_dialog.save_title": {
+    "balance.detail.exit_dialog.save_title": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1004,7 +1004,7 @@
         }
       }
     },
-    "history.detail.footer.no_rate_label": {
+    "balance.detail.footer.no_rate_label": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1021,7 +1021,7 @@
         }
       }
     },
-    "history.detail.footer.total_rub_label": {
+    "balance.detail.footer.total_rub_label": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1038,7 +1038,7 @@
         }
       }
     },
-    "history.detail.new_title": {
+    "balance.detail.new_title": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1055,24 +1055,24 @@
         }
       }
     },
-    "history.detail.save_failed_alert.message": {
+    "balance.detail.save_failed_alert.message": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The history entry could not be saved. Try again."
+            "value": "The balance entry could not be saved. Try again."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Не удалось сохранить запись в историю. Попробуйте ещё раз."
+            "value": "Не удалось сохранить запись баланса. Попробуйте ещё раз."
           }
         }
       }
     },
-    "history.detail.save_failed_alert.ok_button": {
+    "balance.detail.save_failed_alert.ok_button": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1089,7 +1089,7 @@
         }
       }
     },
-    "history.detail.save_failed_alert.title": {
+    "balance.detail.save_failed_alert.title": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1106,7 +1106,7 @@
         }
       }
     },
-    "history.detail.status.new": {
+    "balance.detail.status.new": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1123,7 +1123,7 @@
         }
       }
     },
-    "history.detail.status.unsaved": {
+    "balance.detail.status.unsaved": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1140,7 +1140,7 @@
         }
       }
     },
-    "history.detail.status.unsaved_removed": {
+    "balance.detail.status.unsaved_removed": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1157,7 +1157,7 @@
         }
       }
     },
-    "history.detail.summary_only.description": {
+    "balance.detail.summary_only.description": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1174,7 +1174,7 @@
         }
       }
     },
-    "history.detail.summary_only.title": {
+    "balance.detail.summary_only.title": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1191,7 +1191,7 @@
         }
       }
     },
-    "history.detail.table.bank_column": {
+    "balance.detail.table.bank_column": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1208,7 +1208,7 @@
         }
       }
     },
-    "history.detail.table.bank_prompt": {
+    "balance.detail.table.bank_prompt": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1225,7 +1225,7 @@
         }
       }
     },
-    "history.detail.table.close_date_column": {
+    "balance.detail.table.close_date_column": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1242,7 +1242,7 @@
         }
       }
     },
-    "history.detail.table.name_column": {
+    "balance.detail.table.name_column": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1259,7 +1259,7 @@
         }
       }
     },
-    "history.detail.table.name_prompt": {
+    "balance.detail.table.name_prompt": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1276,7 +1276,7 @@
         }
       }
     },
-    "history.detail.table.no_rate_label": {
+    "balance.detail.table.no_rate_label": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1293,7 +1293,7 @@
         }
       }
     },
-    "history.detail.table.open_date_column": {
+    "balance.detail.table.open_date_column": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1310,7 +1310,7 @@
         }
       }
     },
-    "history.detail.table.recalculate_close_date_button": {
+    "balance.detail.table.recalculate_close_date_button": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1327,7 +1327,7 @@
         }
       }
     },
-    "history.detail.table.recalculate_close_date_help": {
+    "balance.detail.table.recalculate_close_date_help": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1344,7 +1344,7 @@
         }
       }
     },
-    "history.detail.table.term_column": {
+    "balance.detail.table.term_column": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1361,7 +1361,7 @@
         }
       }
     },
-    "history.detail.table.total_rub_column": {
+    "balance.detail.table.total_rub_column": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1378,7 +1378,7 @@
         }
       }
     },
-    "history.detail.toolbar.add_button": {
+    "balance.detail.toolbar.add_button": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1395,7 +1395,7 @@
         }
       }
     },
-    "history.detail.toolbar.back_button": {
+    "balance.detail.toolbar.back_button": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1412,7 +1412,7 @@
         }
       }
     },
-    "history.detail.toolbar.clear_all_button": {
+    "balance.detail.toolbar.clear_all_button": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1429,7 +1429,7 @@
         }
       }
     },
-    "history.detail.toolbar.delete_button": {
+    "balance.detail.toolbar.delete_button": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1446,7 +1446,7 @@
         }
       }
     },
-    "history.detail.toolbar.save_button": {
+    "balance.detail.toolbar.save_button": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1463,7 +1463,7 @@
         }
       }
     },
-    "history.empty.add_button": {
+    "balance.empty.add_button": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1480,7 +1480,7 @@
         }
       }
     },
-    "history.empty.description": {
+    "balance.empty.description": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1497,41 +1497,41 @@
         }
       }
     },
-    "history.empty.title": {
+    "balance.empty.title": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No History Yet"
+            "value": "No Entries Yet"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "История пуста"
+            "value": "Записей пока нет"
           }
         }
       }
     },
-    "history.navigation.title": {
+    "balance.navigation.title": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "History"
+            "value": "Balance"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "История"
+            "value": "Баланс"
           }
         }
       }
     },
-    "history.table.archive_entry_help": {
+    "balance.table.archive_entry_help": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1548,7 +1548,7 @@
         }
       }
     },
-    "history.table.comment_column": {
+    "balance.table.comment_column": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1565,7 +1565,7 @@
         }
       }
     },
-    "history.table.date_column": {
+    "balance.table.date_column": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1582,7 +1582,7 @@
         }
       }
     },
-    "history.table.delta_eur_per_day_column": {
+    "balance.table.delta_eur_per_day_column": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1599,7 +1599,7 @@
         }
       }
     },
-    "history.table.delta_rub_per_day_column": {
+    "balance.table.delta_rub_per_day_column": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1616,7 +1616,7 @@
         }
       }
     },
-    "history.table.delta_usd_per_day_column": {
+    "balance.table.delta_usd_per_day_column": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1633,7 +1633,7 @@
         }
       }
     },
-    "history.table.eur_in_rub_column": {
+    "balance.table.eur_in_rub_column": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1650,7 +1650,7 @@
         }
       }
     },
-    "history.table.eur_rate_column": {
+    "balance.table.eur_rate_column": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1667,7 +1667,7 @@
         }
       }
     },
-    "history.table.rate_attention_help": {
+    "balance.table.rate_attention_help": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1684,7 +1684,7 @@
         }
       }
     },
-    "history.table.total_eur_column": {
+    "balance.table.total_eur_column": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1701,7 +1701,7 @@
         }
       }
     },
-    "history.table.total_rub_column": {
+    "balance.table.total_rub_column": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1718,7 +1718,7 @@
         }
       }
     },
-    "history.table.total_usd_column": {
+    "balance.table.total_usd_column": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1735,7 +1735,7 @@
         }
       }
     },
-    "history.table.usd_in_rub_column": {
+    "balance.table.usd_in_rub_column": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1752,7 +1752,7 @@
         }
       }
     },
-    "history.table.usd_rate_column": {
+    "balance.table.usd_rate_column": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1769,7 +1769,7 @@
         }
       }
     },
-    "history.toolbar.add_archive_button": {
+    "balance.toolbar.add_archive_button": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1786,7 +1786,7 @@
         }
       }
     },
-    "history.toolbar.add_archive_help": {
+    "balance.toolbar.add_archive_help": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1803,7 +1803,7 @@
         }
       }
     },
-    "history.toolbar.add_entry_button": {
+    "balance.toolbar.add_entry_button": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1820,7 +1820,7 @@
         }
       }
     },
-    "history.toolbar.add_entry_help": {
+    "balance.toolbar.add_entry_help": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -3248,40 +3248,6 @@
         }
       }
     },
-    "savings.toolbar.years_button": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Year Parameters"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Параметры по годам"
-          }
-        }
-      }
-    },
-    "savings.toolbar.years_help": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tax rates and living standard growth by year"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ставки налога и рост уровня жизни по годам"
-          }
-        }
-      }
-    },
     "savings.year_sheet.add_button": {
       "extractionState": "manual",
       "localizations": {
@@ -3707,23 +3673,6 @@
         }
       }
     },
-    "savings.years.toolbar.back_button": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Back"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Назад"
-          }
-        }
-      }
-    },
     "savings.years.toolbar.delete_button": {
       "extractionState": "manual",
       "localizations": {
@@ -3911,19 +3860,19 @@
         }
       }
     },
-    "sidebar.section.history_title": {
+    "sidebar.section.balance_title": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "History"
+            "value": "Balance"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "История"
+            "value": "Баланс"
           }
         }
       }
@@ -3941,6 +3890,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Накопления"
+          }
+        }
+      }
+    },
+    "sidebar.section.savings_years_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Year Parameters"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Параметры по годам"
           }
         }
       }

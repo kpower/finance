@@ -1,8 +1,8 @@
 import Foundation
 import SwiftData
 
-/// One line of the history table: totals of an entry and change vs. the previous one.
-struct HistoryRow: Identifiable {
+/// One line of the balance table: totals of an entry and change vs. the previous one.
+struct BalanceRow: Identifiable {
   let id: PersistentIdentifier
   let date: Date
   let kind: SnapshotKind
@@ -23,15 +23,15 @@ struct HistoryRow: Identifiable {
 
   /// Calendar days since the previous entry; nil for the first one.
   let days: Int?
-  let deltaRUB: HistoryDelta?
-  let deltaUSD: HistoryDelta?
-  let deltaEUR: HistoryDelta?
+  let deltaRUB: BalanceDelta?
+  let deltaUSD: BalanceDelta?
+  let deltaEUR: BalanceDelta?
 
   let comment: String
 }
 
 /// Change of a total versus the previous entry.
-struct HistoryDelta: Hashable {
+struct BalanceDelta: Hashable {
   let value: Double
   let perDay: Double
 }

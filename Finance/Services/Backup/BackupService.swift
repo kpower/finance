@@ -57,7 +57,7 @@ enum BackupService {
     }
     guard areIdentifiersKnown else {
       throw DecodingError.dataCorrupted(
-        DecodingError.Context(codingPath: [], debugDescription: "Unknown kind or rate source of a history entry"))
+        DecodingError.Context(codingPath: [], debugDescription: "Unknown kind or rate source of a balance entry"))
     }
     return backup
   }
