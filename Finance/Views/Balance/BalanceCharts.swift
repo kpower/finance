@@ -71,7 +71,7 @@ private struct TotalChart: View {
           RuleMark(x: .value(dateLabel, hovered.row.date, unit: .day))
             .foregroundStyle(.secondary.opacity(0.5))
             .lineStyle(StrokeStyle(lineWidth: 1))
-            .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
+            .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .chart))) {
               tooltip(hovered)
             }
         }
@@ -108,17 +108,55 @@ private struct TotalChart: View {
   }
 
   private func tooltip(_ point: (row: BalanceRow, value: Double)) -> some View {
-    VStack(alignment: .leading, spacing: 2) {
-      Text(Fmt.date(point.row.date)).font(.caption).foregroundStyle(.secondary)
-      Text(Fmt.money(point.value)).font(.callout.weight(.semibold)).monospacedDigit()
-      switch point.row.kind {
-      case .detailed:
-        EmptyView()
-      case .summaryOnly:
-        Text(.balanceChartArchiveEntryLabel).font(.caption2).foregroundStyle(.secondary)
+    FirstSetsWidthStack(spacing: 2) {
+      VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: 4) {
+          Text(Fmt.date(point.row.date)).monospacedDigit()
+          switch point.row.kind {
+          case .detailed: EmptyView()
+          case .summaryOnly: Image(systemName: "archivebox")
+          }
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        Text(Fmt.money(point.value)).font(.callout.weight(.semibold)).monospacedDigit()
+      }
+      if !point.row.comment.isEmpty {
+        Text(verbatim: point.row.comment)
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+          .lineLimit(3)
+          .truncationMode(.tail)
       }
     }
     .padding(6)
     .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6))
+  }
+}
+
+/// Vertical stack, leading-aligned, at its ideal size: the first subview sets the width, and the ones below
+/// wrap to it instead of widening the stack.
+private struct FirstSetsWidthStack: Layout {
+  let spacing: CGFloat
+
+  func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+    let sizes = sizes(of: subviews)
+    let height = sizes.map(\.height).reduce(0, +) + spacing * CGFloat(Swift.max(sizes.count - 1, 0))
+    return CGSize(width: sizes.first?.width ?? 0, height: height)
+  }
+
+  func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+    var y = bounds.minY
+    for (subview, size) in zip(subviews, sizes(of: subviews)) {
+      subview.place(at: CGPoint(x: bounds.minX, y: y), proposal: ProposedViewSize(size))
+      y += size.height + spacing
+    }
+  }
+
+  private func sizes(of subviews: Subviews) -> [CGSize] {
+    guard let first = subviews.first else { return [] }
+    let firstSize = first.sizeThatFits(.unspecified)
+    let below = subviews.dropFirst().map { $0.sizeThatFits(ProposedViewSize(width: firstSize.width, height: nil)) }
+    return [firstSize] + below
   }
 }

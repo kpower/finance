@@ -460,23 +460,6 @@
         }
       }
     },
-    "balance.chart.archive_entry_label": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "archive entry"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "архивная запись"
-          }
-        }
-      }
-    },
     "balance.chart.date_axis_label": {
       "extractionState": "manual",
       "localizations": {

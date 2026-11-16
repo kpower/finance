@@ -116,10 +116,8 @@ struct SnapshotDetailView: View {
     if SnapshotService.isDayTaken(draft.date, excluding: stored, in: context) { return .blocked(.dayTaken) }
     guard let rates = draft.rates else { return .blocked(.noRates) }
     switch draft.content {
-    case let .detailed(deposits):
-      if deposits.isEmpty { return .blocked(.noDeposits) }
-    case .summaryOnly:
-      break
+    case let .detailed(deposits): if deposits.isEmpty { return .blocked(.noDeposits) }
+    case .summaryOnly: break
     }
     return .ready(
       SnapshotValues(
@@ -314,8 +312,6 @@ struct SnapshotDetailView: View {
         sumField("€", value: totals.eur, isChanged: totals.wrappedValue.eur != savedTotals.eur)
       }
     }
-    // Fills the space between header and footer. Not `fixedSize`: measured at zero width its text
-    // wraps one letter per line, and that height pushed the header and footer out of the window.
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 
